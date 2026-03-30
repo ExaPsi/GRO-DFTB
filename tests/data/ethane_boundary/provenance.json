@@ -1,0 +1,62 @@
+{
+    "description": "Ethane equilibrium geometry for QM/MM boundary testing",
+    "stories": ["US-034", "US-035"],
+    "purpose": [
+        "US-034: FD validation of link atom force projection",
+        "US-035: Charge redistribution scheme testing (none/zero/shift)"
+    ],
+
+    "geometry": {
+        "method": "DFTB+ geometry optimization",
+        "functional": "SCC-DFTB2",
+        "parameters": "mio-1-1",
+        "status": "TO_BE_COMPUTED",
+        "notes": "Coordinates in geometry.xyz are approximate equilibrium values. Final geometry should be from actual DFTB+ optimization.",
+        "units": "Angstrom"
+    },
+
+    "qm_mm_boundary": {
+        "qm_atoms": [0, 1, 2, 3],
+        "qm_description": "Methyl group (C + 3H)",
+        "mm_atoms": [4, 5, 6, 7],
+        "mm_description": "Methyl group (C + 3H)",
+        "link_bonds": [
+            {"qm_idx": 0, "mm_idx": 4, "description": "C0-C4 bond cut"}
+        ],
+        "m1_atom": 4,
+        "m1_description": "MM boundary carbon, direct bonded partner of QM C0",
+        "m2_atoms": [5, 6, 7],
+        "m2_description": "Hydrogens attached to M1 (used in shift scheme)",
+        "link_atom_species": "H",
+        "link_distance_bohr": 2.06
+    },
+
+    "charges": {
+        "source": "OPLS-AA force field",
+        "reference": "Jorgensen et al., J. Am. Chem. Soc. 118, 11225 (1996)",
+        "q_m1_e": -0.180,
+        "q_m2_e": 0.060,
+        "total_mm_charge_e": 0.0,
+        "notes": "Standard OPLS-AA parameters for sp3 carbon (CT) and aliphatic hydrogen (HC)"
+    },
+
+    "software": {
+        "dftbplus_version": "25.1",
+        "dftbplus_commit": "fd31d873",
+        "sk_parameters": "mio-1-1",
+        "sk_source": "http://www.dftb.org/parameters/download/mio/mio-1-1-cc/"
+    },
+
+    "us035_test_notes": {
+        "none_scheme": "Q' = Q exactly (bitwise comparison)",
+        "zero_scheme": "Q'_M1 = 0, charge redistributed uniformly to M2 atoms",
+        "shift_scheme": "Q'_M1 = 0, charge redistributed to preserve dipole moment",
+        "validation_type": "self-consistent",
+        "external_reference_needed": false,
+        "reason": "Tests verify algebraic properties (charge/dipole conservation) and FD self-consistency, not comparison to external values"
+    },
+
+    "created": "2026-02-03",
+    "created_by": "GRO-DFTB US-034/US-035 implementation",
+    "validation_required": true
+}

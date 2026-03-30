@@ -1,0 +1,82 @@
+# DFTB+ HSD for B6 Solvated Benchmark (DFTB2/mio-1-1)
+# System: Alanine dipeptide (Ace-Ala-NMe) in TIP3P water
+# QM region: 10 ALA atoms + 2 link H = 12 augmented atoms
+# Method: DFTB2 (SCC-DFTB, second-order)
+# SK Set: mio-1-1
+#
+# Species ordering (CRITICAL):
+#   Force provider auto-detects from QM atom list ordering.
+#   ALA atom 0 = N -> species 0
+#   ALA atom 1 = H -> species 1
+#   ALA atom 2 = C -> species 2
+#   ALA atom 9 = O -> species 3
+#   GenFormat species line MUST be: N H C O
+#
+# SCC robustness: Anderson mixer (same as B5 production)
+#   - More robust than Broyden for QM/MM with large external potentials
+#   - Fermi Temperature > 0 smooths occupation function
+#   - ConvergentSCCOnly = No prevents ERROR STOP on rare non-convergence
+
+Geometry = GenFormat {
+  12 C
+  N  H  C  O
+  1   1    0.0000000000    0.0000000000    0.0000000000
+  2   2    0.0000000000    0.0000000000    1.0000000000
+  3   3    0.0000000000    1.0000000000    0.0000000000
+  4   2    1.0000000000    0.0000000000    0.0000000000
+  5   3    0.0000000000    0.0000000000    2.0000000000
+  6   2    0.0000000000    2.0000000000    0.0000000000
+  7   2    2.0000000000    0.0000000000    0.0000000000
+  8   2    0.0000000000    0.0000000000    3.0000000000
+  9   3    0.0000000000    3.0000000000    0.0000000000
+ 10   4    3.0000000000    0.0000000000    0.0000000000
+ 11   2    0.0000000000    4.0000000000    0.0000000000
+ 12   2    0.0000000000    0.0000000000    4.0000000000
+}
+
+Hamiltonian = DFTB {
+  SCC = Yes
+  SCCTolerance = 1e-10
+  MaxSCCIterations = 500
+  ReadInitialCharges = No
+  ConvergentSCCOnly = No
+
+  SlaterKosterFiles = Type2FileNames {
+    Prefix = "../slako/mio-1-1/"
+    Separator = "-"
+    Suffix = ".skf"
+  }
+
+  MaxAngularMomentum = {
+    N = "p"
+    H = "s"
+    C = "p"
+    O = "p"
+  }
+
+  Mixer = Anderson {
+    MixingParameter = 0.05
+    Generations = 8
+    InitMixingParameter = 0.01
+  }
+
+  Filling = Fermi {
+    Temperature [K] = 100.0
+  }
+
+  ForceEvaluation = "dynamics"
+}
+
+Options = {
+  WriteDetailedOut = No
+  WriteResultsTag = No
+}
+
+Analysis = {
+  PrintForces = Yes
+}
+
+ParserOptions = {
+  ParserVersion = 14
+  IgnoreUnprocessedNodes = No
+}

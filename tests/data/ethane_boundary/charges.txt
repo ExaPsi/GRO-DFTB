@@ -1,0 +1,21 @@
+# US-035: MM point charges for ethane boundary test
+# Source: OPLS-AA force field parameters (Jorgensen et al., JACS 1996)
+# ThDD:T-US-035-2.1 — charges used for redistribution scheme testing
+#
+# Format: atom_index  charge_e  atom_type  notes
+#
+# QM region (atoms 0-3): Charge redistribution does not apply to QM atoms
+# MM region (atoms 4-7): Subject to charge redistribution
+#
+# Index  Charge(e)   Type    Description
+4        -0.180      CT      M1: MM boundary carbon (bonded to QM C0)
+5        +0.060      HC      M2: H attached to M1 (neighbor 1)
+6        +0.060      HC      M2: H attached to M1 (neighbor 2)
+7        +0.060      HC      M2: H attached to M1 (neighbor 3)
+
+# Provenance:
+# - OPLS-AA parameters: CT (sp3 carbon) = -0.180 e, HC (H on C) = +0.060 e
+# - Reference: W.L. Jorgensen et al., J. Am. Chem. Soc. 118, 11225 (1996)
+# - These are standard force field values, not fitted to this specific system
+#
+# Total MM charge: -0.180 + 3*0.060 = 0.000 e (neutral ethyl fragment)

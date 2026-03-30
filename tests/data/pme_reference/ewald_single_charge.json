@@ -1,0 +1,56 @@
+{
+  "provenance": {
+    "script": "tests/data/pme_reference/ewald_single_charge.py",
+    "method": "Direct Ewald summation (real + reciprocal)",
+    "date": "2026-02-08",
+    "python": "3.x with numpy + scipy",
+    "precision": "float64",
+    "gromacs_constants": "CODATA 2018 (api/legacy/include/gromacs/math/units.h)"
+  },
+  "system": {
+    "description": "Single charge Q=+1e at origin, cubic box L=3.0 nm",
+    "box_length_nm": 3.0,
+    "charge_e": 1.0,
+    "source_position_nm": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "probe_position_nm": [
+      0.3,
+      0.4,
+      0.5
+    ]
+  },
+  "parameters": {
+    "rcoulomb_nm": 1.0,
+    "ewald_rtol": 1e-05,
+    "alpha_invnm": 3.1234132743408782,
+    "nmax_real": 5,
+    "kmax_recip": 20
+  },
+  "results": {
+    "potential_hartree": 0.027383672365645328,
+    "potential_real_hartree": 0.00013378344204918657,
+    "potential_recip_hartree": 0.027249888923596144,
+    "potential_kjmol_e": 71.89582192363751,
+    "potential_real_kjmol_e": 0.3512483788685194,
+    "potential_recip_kjmol_e": 71.544573544769,
+    "electric_field_ha_bohr": [
+      0.002267259836377431,
+      0.003013924031248229,
+      0.0037517523242842524
+    ],
+    "electric_field_kjmol_e_nm": [
+      112.48953583731236,
+      149.53509513304653,
+      186.14226334534578
+    ]
+  },
+  "unit_conversions": {
+    "c_one4PiEps0_kj_mol_nm_e2": 138.93545764498154,
+    "c_hartreeKjMol": 2625.4996394799,
+    "c_bohr2Nm": 0.0529177210903,
+    "pot_gmx_to_ha": 0.00038087988471333236
+  }
+}

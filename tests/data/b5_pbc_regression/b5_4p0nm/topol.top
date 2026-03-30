@@ -1,0 +1,8 @@
+#include "amber99sb-ildn.ff/forcefield.itp"
+#include "amber99sb-ildn.ff/tip3p.itp"
+
+[ system ]
+B5 PBC Regression - 4.0 nm box
+
+[ molecules ]
+SOL          2164

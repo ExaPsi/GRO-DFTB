@@ -1,0 +1,249 @@
+{
+  "benchmark_id": "B5",
+  "description": "1 QM water in TIP3P box for QM/MM stability and PBC validation",
+  "generated_date": "2026-02-04T17:30:00Z",
+  "generated_by": "QA Validation Specialist (Agent 09)",
+  "protocol_document": "docs/theory/US-041/b5_generation_protocol.md",
+
+  "software_versions": {
+    "gromacs": {
+      "version": "2027.0-dev-20260130-e1913f698e-unknown",
+      "commit": "e1913f698e84f8d8fd6853ce4b6df888d30aaa96",
+      "precision": "mixed",
+      "binary_path": "external/gromacs/_install/bin/gmx"
+    },
+    "dftbplus": {
+      "version": "25.1-dev",
+      "commit": "fd31d873",
+      "api_version": "not used (standalone calculation)",
+      "binary_path": "dftb+"
+    }
+  },
+
+  "sk_parameters": {
+    "name": "mio-1-1",
+    "method": "DFTB2 (SCC-DFTB, second-order)",
+    "source": "https://dftb.org/parameters/download/mio/mio-1-1-cc",
+    "reference": "Elstner et al., PRB 58, 7260 (1998)",
+    "local_path": "../slako/mio-1-1/",
+    "note": "DFTB3 with 3ob-3-1 preferred for water but not yet available"
+  },
+
+  "system_preparation": {
+    "box_dimensions_nm": [3.0, 3.0, 3.0],
+    "box_volume_nm3": 27.0,
+    "n_waters_total": 884,
+    "n_atoms_total": 2652,
+    "force_field": "AMBER99SB-ILDN with TIP3P water",
+    "water_density_g_L": 979.448,
+
+    "energy_minimization": {
+      "algorithm": "steepest descent",
+      "mdp_file": "preparation/em.mdp",
+      "max_steps": 5000,
+      "steps_taken": 165,
+      "emtol_kJ_mol_nm": 100.0,
+      "final_potential_energy_kJ_mol": -42578.391,
+      "final_fmax_kJ_mol_nm": 90.055496,
+      "converged": true
+    },
+
+    "nvt_equilibration": {
+      "algorithm": "leap-frog",
+      "mdp_file": "preparation/nvt.mdp",
+      "duration_ps": 100,
+      "timestep_fs": 2,
+      "n_steps": 50000,
+      "temperature_target_K": 300,
+      "thermostat": "V-rescale",
+      "tau_t_ps": 0.1,
+      "gen_seed": 12345,
+      "gen_temp_K": 300,
+      "constraints": "h-bonds (LINCS)",
+      "final_temperature_K": 300.082,
+      "temperature_rmsd_K": 6.5926,
+      "temperature_err_estimate_K": 0.32
+    }
+  },
+
+  "qm_region": {
+    "selection_criterion": "Water molecule whose oxygen is closest to box center (1.5, 1.5, 1.5) nm",
+    "residue_number": 395,
+    "atom_indices_1based": [1183, 1184, 1185],
+    "atom_indices_0based": [1182, 1183, 1184],
+    "atom_names": ["OW", "HW1", "HW2"],
+    "distance_to_center_nm": 0.225129,
+    "n_atoms": 3,
+    "oxygen_position_nm": [1.435, 1.677, 1.623]
+  },
+
+  "qm_reference_calculation": {
+    "method": "DFTB2 (SCC-DFTB, second-order)",
+    "sk_set": "mio-1-1",
+    "scc_tolerance": 1e-10,
+    "max_scc_iterations": 500,
+    "mixer": "Broyden",
+    "mixing_parameter": 0.05,
+    "read_initial_charges": false,
+    "scc_iterations_converged": 9,
+    "dispersion": "none",
+    "h_correction": "none (mio-1-1 does not support)",
+    "note_scc_settings": "MaxSCCIterations increased from 200 to 500 and MixingParameter reduced from 0.20 to 0.05 for NVE stability (2026-02-05). ReadInitialCharges=No because DFTB+ C API retains charges between calls automatically. These changes affect convergence path only, not converged results at SCCTolerance=1e-10. Reference energy (-3.7957527543 Ha) remains valid.",
+
+    "results": {
+      "total_energy_Ha": -3.7957527543,
+      "total_energy_eV": -103.2877,
+      "mermin_free_energy_Ha": -3.7957527543,
+      "extrapolated_0K_energy_Ha": -3.7957527543,
+      "force_related_energy_Ha": -3.7957527543,
+      "energy_H0_Ha": -3.8088029530,
+      "energy_SCC_Ha": 0.0130444264,
+      "repulsive_energy_Ha": 0.0000057723,
+      "fermi_level_Ha": -0.2235978286,
+      "fermi_level_eV": -6.0844
+    },
+
+    "mulliken_charges_e": {
+      "O": -0.31721212,
+      "H1": 0.15858861,
+      "H2": 0.15862351,
+      "total": -0.00000000
+    },
+
+    "forces_Ha_Bohr": {
+      "O":  [0.057437366974, 0.057401205706, -0.059977318516],
+      "H1": [0.028457332257, -0.063554178298, 0.051362879218],
+      "H2": [-0.085894699231, 0.006152972591, 0.008614439298]
+    },
+
+    "dipole_moment": {
+      "au": [0.37955961, 0.37943622, -0.39644607],
+      "debye": [0.96474437, 0.96443075, -1.00766547],
+      "magnitude_debye": 1.695
+    }
+  },
+
+  "water_geometry": {
+    "note": "From NVT equilibration snapshot, instantaneous thermal geometry",
+    "O_H1_distance_nm": 0.095859,
+    "O_H2_distance_nm": 0.095838,
+    "H_H_distance_nm": 0.151228,
+    "H_O_H_angle_deg": 104.16
+  },
+
+  "file_checksums_sha256": {
+    "b5_initial.gro": "313447cd2c79fe7a7cec92e694c024d37dc1dfa88dfb64367db268b1088f6103",
+    "b5_initial.ndx": "fba99b4b4cebc0d5ae18cf9985e87002d0b31d2acb14ef134c64b6dd0f49a600",
+    "b5_topol.top": "f06884a65509dea4f9d668f9a0504cd5220a87e6ab8796df7f03175cbc561848",
+    "qm_water_isolated.gen": "811e7470a77901e85f52f40cef24cf2a2cc310dd5076e1f1522dac517b935b13",
+    "dftb_in.hsd": "853602e6cb62115da92779b9568d830d926010a2ede08bec422d9abb1a162501"
+  },
+
+  "host_info": {
+    "hostname": "duri01",
+    "os": "Linux 5.15.0-163-generic",
+    "user": "vyv"
+  },
+
+  "golden_rule_compliance": {
+    "note": "All numerical values from actual GROMACS and DFTB+ calculations, not fabricated",
+    "gromacs_em_log": "preparation/em.log",
+    "gromacs_nvt_log": "preparation/nvt.log",
+    "dftb_output": "qm_water_reference.log",
+    "dftb_detailed": "detailed.out",
+    "dftb_results_tag": "results.tag",
+    "protocol_document": "docs/theory/US-041/b5_generation_protocol.md",
+    "verified_by": "QA Validation Specialist (Agent 09)",
+    "verification_date": "2026-02-04"
+  },
+
+  "validation_checklist": {
+    "system_integrity": {
+      "correct_n_waters": true,
+      "box_dimensions_correct": true,
+      "em_converged": true,
+      "temperature_equilibrated": true
+    },
+    "qm_region": {
+      "closest_to_center": true,
+      "indices_verified": true,
+      "index_file_valid": true
+    },
+    "dftb_config": {
+      "sk_files_present": true,
+      "scc_tolerance_tight": true,
+      "forces_calculated": true
+    },
+    "reference_calculation": {
+      "scc_converged": true,
+      "charges_reasonable": true,
+      "energy_reasonable": true
+    },
+    "provenance": {
+      "software_versions_recorded": true,
+      "random_seeds_documented": true,
+      "checksums_computed": true,
+      "protocol_reproducible": true
+    }
+  },
+
+  "nve_trajectory_attempt4": {
+    "description": "500 ps NVE trajectory with Anderson mixer + Fermi T=100K + ConvergentSCCOnly=No",
+    "generation_date": "2026-02-05 to 2026-02-06",
+    "gromacs_binary": "gmx",
+    "libgrodftb": "_build/libgrodftb.so.0.1.0",
+    "mdp_file": "nve_500ps.mdp",
+    "timestep_fs": 0.5,
+    "target_steps": 1000000,
+    "actual_steps": 999700,
+    "actual_duration_ps": 499.86,
+    "clean_region_ps": 166.775,
+    "termination": "Fortran ERROR STOP (SCC non-convergence at step 999700)",
+    "scc_config": {
+      "mixer": "Anderson",
+      "mixing_parameter": 0.05,
+      "generations": 8,
+      "init_mixing_parameter": 0.01,
+      "filling": "Fermi T=100K",
+      "max_iterations": 500,
+      "convergent_scc_only": false,
+      "tolerance": 1e-10
+    },
+    "embedding": {
+      "cutoff_nm": 1.2,
+      "switch_width_nm": 0.2
+    },
+    "drift_analysis": {
+      "analysis_region": "0 to 166.775 ps (clean, 100% SCC convergence)",
+      "drift_kj_mol_ps_atom": -0.00016177,
+      "threshold_kj_mol_ps_atom": 0.01,
+      "margin_factor": 61.8,
+      "verdict": "QUALIFIED PASS"
+    },
+    "clean_region_statistics": {
+      "total_energy_mean_kj": -39030.81,
+      "total_energy_std_kj": 5.63,
+      "qm_energy_mean_kj": -10706.14,
+      "qm_energy_std_kj": 0.25,
+      "temperature_mean_K": 305.4,
+      "temperature_std_K": 4.78,
+      "pressure_mean_bar": 16.6,
+      "pressure_std_bar": 379.8
+    },
+    "scc_failure_analysis": {
+      "first_failure_ps": 166.775,
+      "cause": "Bare Coulomb 1/r embedding divergence at short QM-MM distance",
+      "resolution": "US-043b Gaussian-damped embedding (erf(r/sigma)/r)"
+    },
+    "analysis_file": "drift_analysis_500ps.json"
+  },
+
+  "notes": [
+    "This benchmark uses DFTB2/mio-1-1 instead of the preferred DFTB3/3ob-3-1",
+    "For publication, regenerate with 3ob-3-1 when SK files are available",
+    "mio-1-1 is less accurate for hydrogen bonding than 3ob-3-1",
+    "All reference values are from actual calculations performed 2026-02-04",
+    "Water geometry is from thermal equilibration (not gas-phase optimized)",
+    "NVE trajectory (Attempt 4) generated 2026-02-05/06, drift analysis 2026-02-06"
+  ]
+}

@@ -1,0 +1,49 @@
+# Test: Methylamine (CH3NH2) - simple, well-known molecule
+# Should converge easily to verify DFTB+ setup works
+
+Geometry = GenFormat {
+  7 C
+  C  N  H
+  1   1    0.000    0.000    0.000      # C (methyl)
+  2   2    2.800    0.000    0.000      # N
+  3   3   -0.700    1.900    0.000      # H on C
+  4   3   -0.700   -0.950    1.650      # H on C
+  5   3   -0.700   -0.950   -1.650      # H on C
+  6   3    3.500    0.950    1.650      # H on N
+  7   3    3.500    0.950   -1.650      # H on N
+}
+
+Driver = ConjugateGradient {
+  MaxForceComponent = 1e-4
+  MaxSteps = 100
+}
+
+Hamiltonian = DFTB {
+  SCC = Yes
+  SCCTolerance = 1e-6
+  MaxSCCIterations = 100
+
+  SlaterKosterFiles = Type2FileNames {
+    Prefix = "../../slako/mio-1-1/"
+    Separator = "-"
+    Suffix = ".skf"
+  }
+
+  MaxAngularMomentum {
+    C = "p"
+    N = "p"
+    H = "s"
+  }
+
+  Filling = Fermi {
+    Temperature [Kelvin] = 300.0
+  }
+}
+
+Options {
+  WriteDetailedOut = Yes
+}
+
+ParserOptions {
+  ParserVersion = 14
+}

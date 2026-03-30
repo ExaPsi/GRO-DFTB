@@ -1,0 +1,138 @@
+{
+  "story": "US-049",
+  "date": "2026-02-10",
+  "gmx_binary": "gmx",
+  "base_dir": "tests/data/b5_pbc_regression",
+  "thresholds": {
+    "drift_kj_mol_ps_atom": 0.01,
+    "drift_ratio": 10.0,
+    "qm_energy_ref_kj_mol": -10743.5,
+    "qm_energy_tol_kj_mol": 5.0,
+    "spike_sigma": 3.0
+  },
+  "boxes": {
+    "2.5nm": {
+      "box_size_nm": 2.5,
+      "n_atoms": 1527,
+      "duration_ps": 10.0,
+      "n_steps": 20000,
+      "drift_kj_mol_ps_atom": 0.0002066507052029854,
+      "drift_slope_kj_mol_ps": 0.3155556268449587,
+      "drift_r_squared": 0.21044644966155013,
+      "drift_pass": true,
+      "qm_energy_mean_kj_mol": -10742.485176837583,
+      "qm_energy_std_kj_mol": 12.725905940388511,
+      "qm_energy_min_kj_mol": -10785.708984,
+      "qm_energy_max_kj_mol": -10704.292969,
+      "qm_energy_pass": true,
+      "scc_failures": 0,
+      "consistency_warnings": 0,
+      "energy_spikes_3sigma": 0,
+      "ewald_alpha": 3.123413,
+      "pme_grid": null,
+      "completed": true,
+      "error": null
+    },
+    "3.0nm": {
+      "box_size_nm": 3.0,
+      "n_atoms": 2652,
+      "duration_ps": 10.0,
+      "n_steps": 20000,
+      "drift_kj_mol_ps_atom": -0.0004938482254192976,
+      "drift_slope_kj_mol_ps": -1.309685493811977,
+      "drift_r_squared": 0.12715837611566638,
+      "drift_pass": true,
+      "qm_energy_mean_kj_mol": -10744.85559614744,
+      "qm_energy_std_kj_mol": 12.381764190417854,
+      "qm_energy_min_kj_mol": -10788.625,
+      "qm_energy_max_kj_mol": -10711.125977,
+      "qm_energy_pass": true,
+      "scc_failures": 0,
+      "consistency_warnings": 0,
+      "energy_spikes_3sigma": 1,
+      "ewald_alpha": 3.123413,
+      "pme_grid": null,
+      "completed": true,
+      "error": null
+    },
+    "4.0nm": {
+      "box_size_nm": 4.0,
+      "n_atoms": 6492,
+      "duration_ps": 10.0,
+      "n_steps": 20000,
+      "drift_kj_mol_ps_atom": -5.3698630819425145e-05,
+      "drift_slope_kj_mol_ps": -0.348611511279708,
+      "drift_r_squared": 0.0018758459134330385,
+      "drift_pass": true,
+      "qm_energy_mean_kj_mol": -10746.965532855073,
+      "qm_energy_std_kj_mol": 14.129798156553475,
+      "qm_energy_min_kj_mol": -10793.222656,
+      "qm_energy_max_kj_mol": -10701.039062,
+      "qm_energy_pass": true,
+      "scc_failures": 0,
+      "consistency_warnings": 0,
+      "energy_spikes_3sigma": 1,
+      "ewald_alpha": 3.123413,
+      "pme_grid": null,
+      "completed": true,
+      "error": null
+    }
+  },
+  "drift_ratio": 9.196663264655363,
+  "acceptance_criteria": {
+    "AC-1": {
+      "description": "All boxes complete without crash",
+      "pass": true,
+      "detail": "3/3 completed"
+    },
+    "AC-2": {
+      "description": "NVE drift < 0.01 kJ/mol/ps/atom per box",
+      "pass": true,
+      "drift_values": {
+        "2.5nm": 0.0002066507052029854,
+        "3.0nm": -0.0004938482254192976,
+        "4.0nm": -5.3698630819425145e-05
+      }
+    },
+    "AC-3": {
+      "description": "Consistency check: 0 warnings",
+      "pass": true,
+      "warnings": {
+        "2.5nm": 0,
+        "3.0nm": 0,
+        "4.0nm": 0
+      }
+    },
+    "AC-4": {
+      "description": "Drift ratio < 10",
+      "pass": true,
+      "drift_ratio": 9.196663264655363
+    },
+    "AC-5": {
+      "description": "QM energy within +/-5 kJ/mol of reference",
+      "pass": true,
+      "reference_kj_mol": -10743.5,
+      "tolerance_kj_mol": 5.0,
+      "means": {
+        "2.5nm": -10742.485176837583,
+        "3.0nm": -10744.85559614744,
+        "4.0nm": -10746.965532855073
+      }
+    },
+    "AC-6": {
+      "description": "Zero SCC failures",
+      "pass": true,
+      "counts": {
+        "2.5nm": 0,
+        "3.0nm": 0,
+        "4.0nm": 0
+      }
+    },
+    "AC-7": {
+      "description": "No edge artifacts at 2.5 nm",
+      "pass": true,
+      "energy_spikes_3sigma": 0
+    }
+  },
+  "overall_pass": true
+}

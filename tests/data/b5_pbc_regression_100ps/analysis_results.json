@@ -1,0 +1,141 @@
+{
+  "story": "US-049",
+  "date": "2026-02-13",
+  "gmx_binary": "gmx",
+  "base_dir": "docs/session/20260213/a5_pbc_extended",
+  "thresholds": {
+    "drift_kj_mol_ps_atom": 0.01,
+    "drift_threshold_source": "specs.md section 21.1",
+    "manuscript_threshold_kj_mol_ps_atom": 0.005,
+    "manuscript_threshold_source": "GROMACS standard (Lindahl2001), reconciled in Paper 1 Section 4.4",
+    "drift_ratio": 10.0,
+    "qm_energy_ref_kj_mol": -10743.5,
+    "qm_energy_tol_kj_mol": 5.0,
+    "spike_sigma": 3.0
+  },
+  "boxes": {
+    "2.5nm": {
+      "box_size_nm": 2.5,
+      "n_atoms": 1527,
+      "duration_ps": 100.0,
+      "n_steps": 200000,
+      "drift_kj_mol_ps_atom": 0.0010165599749233731,
+      "drift_slope_kj_mol_ps": 1.5522870817079908,
+      "drift_r_squared": 0.9829432948586888,
+      "drift_pass": true,
+      "qm_energy_mean_kj_mol": -10740.564279499948,
+      "qm_energy_std_kj_mol": 13.541015941106378,
+      "qm_energy_min_kj_mol": -10789.067383,
+      "qm_energy_max_kj_mol": -10695.532227,
+      "qm_energy_pass": true,
+      "scc_failures": 0,
+      "consistency_warnings": 0,
+      "energy_spikes_3sigma": 0,
+      "ewald_alpha": 3.123413,
+      "pme_grid": null,
+      "completed": true,
+      "error": null
+    },
+    "3.0nm": {
+      "box_size_nm": 3.0,
+      "n_atoms": 2652,
+      "duration_ps": 100.0,
+      "n_steps": 200000,
+      "drift_kj_mol_ps_atom": 0.0005303413229743589,
+      "drift_slope_kj_mol_ps": 1.4064651885279997,
+      "drift_r_squared": 0.9782047547660445,
+      "drift_pass": true,
+      "qm_energy_mean_kj_mol": -10742.196396187688,
+      "qm_energy_std_kj_mol": 13.355583870693788,
+      "qm_energy_min_kj_mol": -10795.431641,
+      "qm_energy_max_kj_mol": -10696.751953,
+      "qm_energy_pass": true,
+      "scc_failures": 0,
+      "consistency_warnings": 0,
+      "energy_spikes_3sigma": 0,
+      "ewald_alpha": 3.123413,
+      "pme_grid": null,
+      "completed": true,
+      "error": null
+    },
+    "4.0nm": {
+      "box_size_nm": 4.0,
+      "n_atoms": 6492,
+      "duration_ps": 100.0,
+      "n_steps": 200000,
+      "drift_kj_mol_ps_atom": 0.00019668899770967956,
+      "drift_slope_kj_mol_ps": 1.2769049731312396,
+      "drift_r_squared": 0.9671066135961325,
+      "drift_pass": true,
+      "qm_energy_mean_kj_mol": -10742.354684508458,
+      "qm_energy_std_kj_mol": 13.727524998753612,
+      "qm_energy_min_kj_mol": -10797.491211,
+      "qm_energy_max_kj_mol": -10700.225586,
+      "qm_energy_pass": true,
+      "scc_failures": 0,
+      "consistency_warnings": 0,
+      "energy_spikes_3sigma": 0,
+      "ewald_alpha": 3.123413,
+      "pme_grid": null,
+      "completed": true,
+      "error": null
+    }
+  },
+  "drift_ratio": 5.168362169519285,
+  "acceptance_criteria": {
+    "AC-1": {
+      "description": "All boxes complete without crash",
+      "pass": true,
+      "detail": "3/3 completed"
+    },
+    "AC-2": {
+      "description": "NVE drift < 0.01 kJ/mol/ps/atom per box",
+      "pass": true,
+      "drift_values": {
+        "2.5nm": 0.0010165599749233731,
+        "3.0nm": 0.0005303413229743589,
+        "4.0nm": 0.00019668899770967956
+      }
+    },
+    "AC-3": {
+      "description": "Consistency check: 0 warnings",
+      "pass": true,
+      "warnings": {
+        "2.5nm": 0,
+        "3.0nm": 0,
+        "4.0nm": 0
+      }
+    },
+    "AC-4": {
+      "description": "Drift ratio < 10",
+      "pass": true,
+      "drift_ratio": 5.168362169519285
+    },
+    "AC-5": {
+      "description": "QM energy within +/-5 kJ/mol of reference",
+      "pass": true,
+      "reference_kj_mol": -10743.5,
+      "tolerance_kj_mol": 5.0,
+      "means": {
+        "2.5nm": -10740.564279499948,
+        "3.0nm": -10742.196396187688,
+        "4.0nm": -10742.354684508458
+      }
+    },
+    "AC-6": {
+      "description": "Zero SCC failures",
+      "pass": true,
+      "counts": {
+        "2.5nm": 0,
+        "3.0nm": 0,
+        "4.0nm": 0
+      }
+    },
+    "AC-7": {
+      "description": "No edge artifacts at 2.5 nm",
+      "pass": true,
+      "energy_spikes_3sigma": 0
+    }
+  },
+  "overall_pass": true
+}

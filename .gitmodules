@@ -1,0 +1,6 @@
+[submodule "external/dftbplus"]
+	path = external/dftbplus
+	url = https://github.com/dftbplus/dftbplus.git
+[submodule "external/gromacs"]
+	path = external/gromacs
+	url = https://github.com/gromacs/gromacs.git

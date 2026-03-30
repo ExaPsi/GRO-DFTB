@@ -1,0 +1,130 @@
+{
+  "story": "US-050",
+  "date": "2026-02-10",
+  "data_dir": "tests/data/b5_pme_drift",
+  "gmx_binary": "gmx",
+  "n_atoms": 2652,
+  "completed": true,
+  "nsteps": 200000,
+  "expected_duration_ps": 100.0,
+  "scc": {
+    "failures": 0,
+    "pass": true
+  },
+  "consistency": {
+    "warnings": 0,
+    "pass": true
+  },
+  "duration_ps": 100.0,
+  "n_energy_frames": 20001,
+  "total_energy": {
+    "mean": -39443.06904439881,
+    "std": 41.05405410803503,
+    "min": -39513.179688,
+    "max": -39368.386719,
+    "n": 20001
+  },
+  "drift": {
+    "slope_kj_mol_ps": 1.4064651885281363,
+    "intercept_kj_mol": -39513.39230382522,
+    "r_squared": 0.9782047547660444,
+    "stderr_kj_mol_ps": 0.0014845363716744083,
+    "drift_kj_mol_ps_atom": 0.0005303413229744104,
+    "drift_stderr_kj_mol_ps_atom": 5.597799289873334e-07,
+    "margin": 18.855781299324686,
+    "pass": true
+  },
+  "block_analysis": {
+    "first_half_slope": 0.9786273929802424,
+    "second_half_slope": 1.415079225780423,
+    "first_half_r_squared": 0.9179214195060293,
+    "second_half_r_squared": 0.9734609125897763,
+    "ratio": 1.4459836664402386,
+    "pass": true
+  },
+  "energy_jumps": {
+    "count": 0,
+    "locations_ps": [],
+    "expected": 0.011466636178311543,
+    "n_points": 20001
+  },
+  "snr": {
+    "snr": 3.4258862348331767,
+    "reliability": "Good",
+    "reliable": true
+  },
+  "pme_cutoff_comparison": {
+    "pme_drift": 0.0005303413229744104,
+    "cutoff_drift": -4.53e-05,
+    "ratio": 11.707313972945041,
+    "expected_range": [
+      2.0,
+      20.0
+    ],
+    "in_range": true
+  },
+  "qm_energy": {
+    "mean": -10742.196396187688,
+    "std": 13.355583870693788,
+    "min": -10795.431641,
+    "max": -10696.751953,
+    "n": 20001,
+    "reference": -10743.5,
+    "deviation": 1.3036038123118487,
+    "pass": true
+  },
+  "temperature": {
+    "mean": 299.417441038149,
+    "std": 4.855483415621489,
+    "min": 278.956146,
+    "max": 316.519745,
+    "n": 20001,
+    "mean_pass": true,
+    "std_pass": true,
+    "pass": true,
+    "theory_std": 4.8
+  },
+  "acceptance_criteria": {
+    "AC-1": {
+      "description": "PME NVE trajectory completes 100+ ps without crash",
+      "pass": true,
+      "duration_ps": 100.0,
+      "completed": true
+    },
+    "AC-2": {
+      "description": "NVE drift < 0.01 kJ/mol/ps/atom",
+      "pass": true,
+      "drift_kj_mol_ps_atom": 0.0005303413229744104,
+      "drift_stderr": 5.597799289873334e-07,
+      "margin": 18.855781299324686
+    },
+    "AC-3": {
+      "description": "Zero SCC failures over entire trajectory",
+      "pass": true,
+      "failures": 0
+    },
+    "AC-4": {
+      "description": "US-048 consistency check passes (0 warnings)",
+      "pass": true,
+      "warnings": 0
+    },
+    "AC-5": {
+      "description": "Mean QM energy within +/-5 kJ/mol of -10743.5 kJ/mol",
+      "pass": true,
+      "mean": -10742.196396187688,
+      "deviation": 1.3036038123118487
+    },
+    "AC-6": {
+      "description": "No late-onset instabilities: block drift ratio <= 3",
+      "pass": true,
+      "ratio": 1.4459836664402386
+    },
+    "AC-7": {
+      "description": "Temperature physically reasonable (300 +/- 10 K, sigma < 8 K)",
+      "pass": true,
+      "mean": 299.417441038149,
+      "std": 4.855483415621489
+    }
+  },
+  "overall_pass": true
+}

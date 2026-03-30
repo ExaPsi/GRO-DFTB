@@ -1,0 +1,54 @@
+# DFTB+ HSD for B5 PBC Regression Tests (DFTB2/mio-1-1)
+# System: 1 QM water molecule
+# Method: DFTB2 (SCC-DFTB, second-order)
+# SK Set: mio-1-1
+# US-049: Reduced output for regression testing
+
+Geometry = GenFormat {
+  <<< "qm_water_isolated.gen"
+}
+
+Hamiltonian = DFTB {
+  SCC = Yes
+  SCCTolerance = 1e-10
+  MaxSCCIterations = 500
+  ReadInitialCharges = No
+  ConvergentSCCOnly = No
+
+  SlaterKosterFiles = Type2FileNames {
+    Prefix = "../slako/mio-1-1/"
+    Separator = "-"
+    Suffix = ".skf"
+  }
+
+  MaxAngularMomentum = {
+    O = "p"
+    H = "s"
+  }
+
+  Mixer = Anderson {
+    MixingParameter = 0.05
+    Generations = 8
+    InitMixingParameter = 0.01
+  }
+
+  Filling = Fermi {
+    Temperature [K] = 100.0
+  }
+
+  ForceEvaluation = "dynamics"
+}
+
+Options = {
+  WriteDetailedOut = No
+  WriteResultsTag = No
+}
+
+Analysis = {
+  PrintForces = Yes
+}
+
+ParserOptions = {
+  ParserVersion = 14
+  IgnoreUnprocessedNodes = No
+}

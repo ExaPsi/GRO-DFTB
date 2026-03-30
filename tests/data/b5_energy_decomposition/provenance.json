@@ -1,0 +1,60 @@
+{
+  "description": "A-9: Energy decomposition analysis for B5 PME NVE trajectory",
+  "source_trajectory": "tests/data/b5_pme_drift/ (US-050, seed 42)",
+  "system": "B5: QM water in TIP3P box, 2652 atoms, L=3.0 nm",
+  "method": "SCC-DFTB2/mio-1-1, PME embedding, sigma=0.1 nm, dt=0.5 fs",
+  "trajectory_duration_ps": 100.0,
+  "analysis_window_ps": 10.0,
+  "nstenergy": 10,
+  "nstlog": 1000,
+  "nstlist": 10,
+  "nframes_edr": 20001,
+  "nframes_10ps": 2001,
+  "nframes_embedding_diag": 210,
+  "analysis_tool": "tools/analyze_energy_decomposition.py",
+  "gromacs_energy_groups": [
+    "Connect-Bonds", "LJ-(SR)", "Disper.-corr.", "Coulomb-(SR)",
+    "Coul.-recip.", "Quantum-En.", "Potential", "Kinetic-En.", "Total-Energy"
+  ],
+  "results": {
+    "max_energy_sum_error_kjmol": 7.20e-03,
+    "note_sum_error": "Single-precision .edr round-off; components verified to sum to total",
+    "means_kjmol": {
+      "total_energy": -39502.52,
+      "quantum_en": -10742.91,
+      "coul_sr": -40864.48,
+      "coul_recip": 224.66,
+      "lj_sr": 5613.93,
+      "disp_corr": -301.47,
+      "kinetic_en": 6567.75
+    },
+    "std_kjmol": {
+      "total_energy": 4.08,
+      "quantum_en": 11.18,
+      "coul_sr": 233.55,
+      "coul_recip": 13.86,
+      "lj_sr": 192.39,
+      "kinetic_en": 99.40
+    },
+    "key_correlations": {
+      "coul_sr_vs_lj": -0.911,
+      "kinetic_vs_coul_sr": -0.591
+    },
+    "embedding_diagnostic": {
+      "npoints": 210,
+      "mean_kjmol": -40.99,
+      "std_kjmol": 12.69,
+      "e_correction_all_zero": true,
+      "note": "E_correction=0 throughout: correction absorbed into reported E_QM"
+    }
+  },
+  "figure": "docs/Manuscript/M1/Manuscript/figures/energy_decomposition.tex",
+  "data_files": [
+    "docs/Manuscript/M1/Manuscript/figures/energy_decomp_total.dat",
+    "docs/Manuscript/M1/Manuscript/figures/energy_decomp_components.dat",
+    "docs/Manuscript/M1/Manuscript/figures/energy_decomp_embedding.dat"
+  ],
+  "date": "2026-02-13",
+  "gromacs_version": "2027.0-dev-20260210-a7e77dc0f8-dirty",
+  "grodftb_version": "v0.2"
+}

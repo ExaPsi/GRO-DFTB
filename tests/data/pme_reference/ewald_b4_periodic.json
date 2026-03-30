@@ -1,0 +1,276 @@
+{
+  "provenance": {
+    "script": "tests/data/pme_reference/ewald_b4_periodic.py",
+    "method": "Direct Ewald summation (real + reciprocal)",
+    "date": "2026-02-08",
+    "python": "3.x with numpy + scipy",
+    "precision": "float64",
+    "gromacs_constants": "CODATA 2018",
+    "qm_geometry_source": "tests/data/b4/geo.gen (Bohr)",
+    "mm_charge_source": "tests/data/b4/dftb_in.hsd PointCharges"
+  },
+  "system": {
+    "description": "B4 water dimer + 1 MM charge in cubic box L=2.0 nm",
+    "box_length_nm": 2.0,
+    "nQM": 6,
+    "qm_atom_labels": [
+      "O1",
+      "H1a",
+      "H1b",
+      "O2",
+      "H2a",
+      "H2b"
+    ],
+    "qm_atoms_bohr": [
+      [
+        -0.702196,
+        -0.05606,
+        0.009942
+      ],
+      [
+        -1.022193,
+        0.846776,
+        -0.011489
+      ],
+      [
+        0.257521,
+        0.042121,
+        0.005219
+      ],
+      [
+        2.220871,
+        0.026717,
+        0.00062
+      ],
+      [
+        2.597493,
+        -0.411663,
+        0.766745
+      ],
+      [
+        2.593135,
+        -0.449496,
+        -0.744782
+      ]
+    ],
+    "qm_atoms_nm": [
+      [
+        -0.0371586120787243,
+        -0.0029665674443222177,
+        0.0005261079830797625
+      ],
+      [
+        -0.05409212407445702,
+        0.044809456193959867,
+        -0.0006079716976064567
+      ],
+      [
+        0.013627424452895146,
+        0.0022289473300445262,
+        0.0002761775863702757
+      ],
+      [
+        0.11752343215553564,
+        0.0014138027543695452,
+        3.2808987075986e-05
+      ],
+      [
+        0.1374534101080066,
+        -0.021784267817196168,
+        0.04057439805738207
+      ],
+      [
+        0.13722279467949508,
+        -0.023786303959205488,
+        -0.03941216614907581
+      ]
+    ],
+    "mm_charges": [
+      {
+        "position_nm": [
+          -0.3,
+          0.0,
+          0.0
+        ],
+        "charge_e": 1.0
+      }
+    ]
+  },
+  "parameters": {
+    "rcoulomb_nm": 0.9,
+    "ewald_rtol": 1e-05,
+    "alpha_invnm": 3.470459193712081,
+    "nmax_real": 5,
+    "kmax_recip": 25
+  },
+  "results": [
+    {
+      "atom_index": 0,
+      "atom_label": "O1",
+      "position_nm": [
+        -0.0371586120787243,
+        -0.0029665674443222177,
+        0.0005261079830797625
+      ],
+      "position_bohr": [
+        -0.702196,
+        -0.05606,
+        0.009942
+      ],
+      "potential_total_hartree": 0.1289518242460822,
+      "potential_real_hartree": 0.03966233630720918,
+      "potential_recip_hartree": 0.08928948793887302,
+      "potential_total_kjmol_e": 338.5629680683642,
+      "electric_field_ha_bohr": [
+        0.04012032981474485,
+        -0.00045338108384106055,
+        8.040519758265091e-05
+      ],
+      "electric_field_kjmol_e_nm": [
+        1990.5602375559542,
+        -22.49439030340077,
+        3.9892839849495365
+      ]
+    },
+    {
+      "atom_index": 1,
+      "atom_label": "H1a",
+      "position_nm": [
+        -0.05409212407445702,
+        0.044809456193959867,
+        -0.0006079716976064567
+      ],
+      "position_bohr": [
+        -1.022193,
+        0.846776,
+        -0.011489
+      ],
+      "potential_total_hartree": 0.13924284357299904,
+      "potential_real_hartree": 0.04655492348766182,
+      "potential_recip_hartree": 0.09268792008533723,
+      "potential_total_kjmol_e": 365.5820356010651,
+      "electric_field_ha_bohr": [
+        0.04371747355400693,
+        0.007973393624403052,
+        -0.0001081856067690561
+      ],
+      "electric_field_kjmol_e_nm": [
+        2169.0316342072574,
+        395.5979519711186,
+        -5.367602113559965
+      ]
+    },
+    {
+      "atom_index": 2,
+      "atom_label": "H1b",
+      "position_nm": [
+        0.013627424452895146,
+        0.0022289473300445262,
+        0.0002761775863702757
+      ],
+      "position_bohr": [
+        0.257521,
+        0.042121,
+        0.005219
+      ],
+      "potential_total_hartree": 0.0967901244358791,
+      "potential_real_hartree": 0.020875798461958403,
+      "potential_recip_hartree": 0.0759143259739207,
+      "potential_total_kjmol_e": 254.12243681161524,
+      "electric_field_ha_bohr": [
+        0.02797325972328531,
+        0.0001994090761939116,
+        2.4707773082464038e-05
+      ],
+      "electric_field_kjmol_e_nm": [
+        1387.8863602844322,
+        9.893631979403267,
+        1.2258700485167235
+      ]
+    },
+    {
+      "atom_index": 3,
+      "atom_label": "O2",
+      "position_nm": [
+        0.11752343215553564,
+        0.0014138027543695452,
+        3.2808987075986e-05
+      ],
+      "position_bohr": [
+        2.220871,
+        0.026717,
+        0.00062
+      ],
+      "potential_total_hartree": 0.05596779889456526,
+      "potential_real_hartree": 0.0051256837082745655,
+      "potential_recip_hartree": 0.0508421151862907,
+      "potential_total_kjmol_e": 146.94343582016464,
+      "electric_field_ha_bohr": [
+        0.015370589490513476,
+        5.273393851486173e-05,
+        1.2237543870970072e-06
+      ],
+      "electric_field_kjmol_e_nm": [
+        762.6079947220926,
+        2.6163813124693234,
+        0.06071627114577476
+      ]
+    },
+    {
+      "atom_index": 4,
+      "atom_label": "H2a",
+      "position_nm": [
+        0.1374534101080066,
+        -0.021784267817196168,
+        0.04057439805738207
+      ],
+      "position_bohr": [
+        2.597493,
+        -0.411663,
+        0.766745
+      ],
+      "potential_total_hartree": 0.04982101946274816,
+      "potential_real_hartree": 0.003712550121055196,
+      "potential_recip_hartree": 0.04610846934169296,
+      "potential_total_kjmol_e": 130.80506863796637,
+      "electric_field_ha_bohr": [
+        0.013660738720023557,
+        -0.0006918759069060642,
+        0.001288547657742991
+      ],
+      "electric_field_kjmol_e_nm": [
+        677.7741717797702,
+        -34.32725194357765,
+        63.93097323832079
+      ]
+    },
+    {
+      "atom_index": 5,
+      "atom_label": "H2b",
+      "position_nm": [
+        0.13722279467949508,
+        -0.023786303959205488,
+        -0.03941216614907581
+      ],
+      "position_bohr": [
+        2.593135,
+        -0.449496,
+        -0.744782
+      ],
+      "potential_total_hartree": 0.04988110407897732,
+      "potential_real_hartree": 0.003725120780035633,
+      "potential_recip_hartree": 0.046155983298941695,
+      "potential_total_kjmol_e": 130.96282077621433,
+      "electric_field_ha_bohr": [
+        0.013676354151249693,
+        -0.0007566837732029814,
+        -0.0012536801758376438
+      ],
+      "electric_field_kjmol_e_nm": [
+        678.5489275366288,
+        -37.54267819573361,
+        -62.20103175017833
+      ]
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+; GRO-DFTB US-050: Long-Duration PME NVE Energy Conservation Test
+;
+; System: 1 QM water in TIP3P box (3.0 nm, 2652 atoms)
+; Method: SCC-DFTB2 / mio-1-1 via GRO-DFTB with PME embedding
+; Purpose: Validate NVE energy conservation over 100+ ps with PME
+;
+; Based on: tests/data/b5_pbc_regression/nve_pme.mdp (US-049, validated)
+; Changes from US-049: nsteps 20000 -> 200000 (10 ps -> 100 ps)
+;                       nstxout-compressed 1000 -> 10000 (save less trajectory)
+;
+; ThDD: T-US-050-2.1 (drift measurement requires 100+ ps)
+; SDD: specs.md S21.1 (NVE drift < 0.01 kJ/mol/ps/atom)
+;
+; LGPL-3.0-or-later
+
+; ---------------------------------------------------------------------------
+; Run parameters
+; ---------------------------------------------------------------------------
+integrator               = md
+nsteps                   = 200000    ; 100 ps at dt=0.0005
+dt                       = 0.0005    ; 0.5 fs
+
+; Continue from NVT-equilibrated state
+continuation             = yes
+gen-vel                  = no
+
+; ---------------------------------------------------------------------------
+; Output control
+; ---------------------------------------------------------------------------
+nstxout                  = 0
+nstvout                  = 0
+nstfout                  = 0
+nstenergy                = 10        ; Energy every 5 fs (20,001 points)
+nstlog                   = 1000      ; Log every 0.5 ps
+nstxout-compressed       = 10000     ; Compressed trajectory every 5 ps
+compressed-x-precision   = 100
+
+; ---------------------------------------------------------------------------
+; Neighbor searching
+; ---------------------------------------------------------------------------
+cutoff-scheme            = Verlet
+nstlist                  = 10
+pbc                      = xyz
+verlet-buffer-tolerance  = 0.005
+
+; ---------------------------------------------------------------------------
+; Electrostatics (PME)
+; ---------------------------------------------------------------------------
+coulombtype              = PME
+rcoulomb                 = 1.0
+pme-order                = 4
+fourierspacing           = 0.12
+
+; ---------------------------------------------------------------------------
+; Van der Waals
+; ---------------------------------------------------------------------------
+vdwtype                  = Cut-off
+rvdw                     = 1.0
+DispCorr                 = EnerPres
+
+; ---------------------------------------------------------------------------
+; Temperature coupling (NVE - DISABLED)
+; ---------------------------------------------------------------------------
+tcoupl                   = no
+
+; ---------------------------------------------------------------------------
+; Pressure coupling (NVE - DISABLED)
+; ---------------------------------------------------------------------------
+pcoupl                   = no
+
+; ---------------------------------------------------------------------------
+; Constraints
+; ---------------------------------------------------------------------------
+constraints              = h-bonds
+constraint-algorithm     = LINCS
+lincs-order              = 4
+lincs-iter               = 1
+
+; ---------------------------------------------------------------------------
+; QM/MM with DFTB+ (PME embedding)
+; ---------------------------------------------------------------------------
+qmmm-cp2k-active                         = yes
+qmmm-cp2k-qmgroup                        = QM_water
+qmmm-cp2k-qmmethod                       = DFTBPLUS
+qmmm-cp2k-qmcharge                       = 0
+qmmm-cp2k-qmmultiplicity                 = 1
+qmmm-cp2k-dftbplus-hsd                   = dftb_in.hsd
+qmmm-cp2k-dftbplus-embedding             = PME
+qmmm-cp2k-dftbplus-cutoff                = 1.0
+qmmm-cp2k-dftbplus-switch-width          = 0.0
+qmmm-cp2k-dftbplus-damping-sigma         = 0.1
+qmmm-cp2k-dftbplus-charge-redistribution = NONE

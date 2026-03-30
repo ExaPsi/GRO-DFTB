@@ -1,0 +1,106 @@
+# B6 Benchmark: Alanine-like Fragment for Link Atom Force Validation
+# US-036: FD Force Validation for Link Atom Projection
+#
+# ThDD:06_theory:S2 -- SCC-DFTB method
+# SDD:specs.md:S21.2 -- B6 benchmark system
+#
+# System: 12-atom capped alanine fragment H-N(H)-CH(CH3)-C(=O)-H
+# This represents the QM region of alanine dipeptide with link atoms:
+# - 10 real QM atoms: N, H, C, H, C, H, H, H, C, O
+# - 2 link H atoms capping the boundary bonds
+#
+# Species order (matches test code):
+# - C = index 0 (in species list)
+# - N = index 1
+# - O = index 2
+# - H = index 3
+#
+# Atom order:
+# 0: N (QM boundary for link 1, connected to acetyl C)
+# 1: H (amide H on N)
+# 2: C (alpha carbon)
+# 3: H (on C-alpha)
+# 4: C (beta carbon, methyl)
+# 5: H (methyl H1)
+# 6: H (methyl H2)
+# 7: H (methyl H3)
+# 8: C (carbonyl carbon, QM boundary for link 2)
+# 9: O (carbonyl oxygen)
+# 10: H (link atom 1, capping N)
+# 11: H (link atom 2, capping carbonyl C, aldehyde-like H)
+#
+# NOTE: This file uses Angstrom units (GenFormat default).
+# The coordinates are from DFTB+ geometry optimization.
+# For Bohr coordinates used in the test code, multiply by 1.8897259886.
+#
+# Provenance: tests/data/b6/provenance.json
+
+Geometry = GenFormat {
+  12 C
+  C  N  O  H
+  1   2   -0.1265981175E-02    0.1584261113E+00   -0.1661863274E+00
+  2   4   -0.2515215945E+00    0.1157535153E+01   -0.1726734868E+00
+  3   1    0.1431169859E+01   -0.3067870029E-01   -0.2750682516E-01
+  4   4    0.1629269526E+01   -0.1133105555E+01   -0.1222312326E-01
+  5   1    0.1996655729E+01    0.5810526277E+00    0.1247370637E+01
+  6   4    0.3086933760E+01    0.4713432111E+00    0.1272621653E+01
+  7   4    0.1576973367E+01    0.9206976566E-01    0.2135855230E+01
+  8   4    0.1759809530E+01    0.1651048736E+01    0.1305398016E+01
+  9   1    0.2139734232E+01    0.5116216060E+00   -0.1262191863E+01
+  10  3    0.3291239472E+01    0.8391042714E+00   -0.1280752204E+01
+  11  4   -0.5171279864E+00   -0.3049926995E+00    0.5944767932E+00
+  12  4    0.1485333818E+01    0.5681326964E+00   -0.2208043608E+01
+}
+
+Driver = {}
+
+Hamiltonian = DFTB {
+  # SCC-DFTB2 (mio-1-1 parameter set)
+  # ThDD:06_theory:Eq2.1 -- SCC-DFTB energy expression
+
+  # SCC convergence settings
+  # ThDD:T-US-036-V.5 -- SCC tolerance must be << FD precision target
+  SCC = Yes
+  SCCTolerance = 1e-10
+  MaxSCCIterations = 200
+
+  # Charge initialization
+  ReadInitialCharges = No
+
+  # Slater-Koster files (mio-1-1 parameter set)
+  # Reference: Elstner et al., PRB 58, 7260 (1998)
+  SlaterKosterFiles = Type2FileNames {
+    Prefix = "../slako/mio-1-1/"
+    Separator = "-"
+    Suffix = ".skf"
+  }
+
+  # Maximum angular momentum for each species
+  # mio-1-1: C(p), N(p), O(p), H(s)
+  MaxAngularMomentum {
+    C = "p"
+    N = "p"
+    O = "p"
+    H = "s"
+  }
+
+  # Filling for molecular calculations
+  Filling = Fermi {
+    Temperature [Kelvin] = 0.0
+  }
+}
+
+# Analysis block - forces MUST be enabled for grodftb_compute to work
+Analysis {
+  MullikenAnalysis = Yes
+  PrintForces = Yes
+}
+
+# Output options
+Options {
+  WriteDetailedOut = Yes
+}
+
+ParserOptions {
+  ParserVersion = 14
+}

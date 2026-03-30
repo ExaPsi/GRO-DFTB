@@ -1,0 +1,123 @@
+; US-042: B5 NVE 10ps QM/MM Energy Conservation Test
+;
+; ThDD:T-US-042-N.13 -- Simulation parameters for drift measurement
+; SDD:specs.md:S21.1 -- NVE drift criterion (< 0.01 kJ/mol/ps/atom)
+; SDD:docs/verification/US-042.md -- Verification protocol
+;
+; System: 1 QM water (3 atoms) in 883 TIP3P waters (2649 atoms)
+; Total atoms: 2652
+; Purpose: Extended NVE trajectory for energy drift analysis
+;
+; CRITICAL: Quintic switching (switch-width = 0.2 nm) is REQUIRED
+; for energy conservation. Hard cutoff (switch-width = 0) causes
+; catastrophic drift (~1-10 kJ/mol/ps/atom) per T-US-042-C.2.
+;
+; LGPL-3.0-or-later
+
+; ---------------------------------------------------------------------------
+; Run parameters (ThDD:T-US-042-N.13)
+; ---------------------------------------------------------------------------
+integrator               = md        ; Leapfrog (symplectic, time-reversible)
+nsteps                   = 20000     ; 10 ps total (10 ps / 0.0005 ps = 20,000)
+dt                       = 0.0005    ; 0.5 fs timestep (conservative for O-H stretch)
+
+; Continue from equilibrated state (NVT checkpoint)
+continuation             = yes
+gen-vel                  = no        ; Use velocities from checkpoint
+
+; ---------------------------------------------------------------------------
+; Output control (ThDD:T-US-042-N.13)
+; ---------------------------------------------------------------------------
+; Energy output: every 10 steps = 5 fs -> 2000 data points for statistics
+nstxout                  = 0         ; No coordinate output (save disk space)
+nstvout                  = 0         ; No velocity output
+nstfout                  = 0         ; No force output
+nstenergy                = 10        ; Energy every 5 fs (2000 points total)
+nstlog                   = 100       ; Log every 50 fs
+nstxout-compressed       = 1000      ; Compressed trajectory every 0.5 ps
+compressed-x-precision   = 100       ; 0.01 nm precision
+
+; ---------------------------------------------------------------------------
+; Neighbor searching
+; ---------------------------------------------------------------------------
+cutoff-scheme            = Verlet
+nstlist                  = 10
+pbc                      = xyz
+verlet-buffer-tolerance  = 0.005     ; kJ/mol/ps
+
+; ---------------------------------------------------------------------------
+; Electrostatics
+; ---------------------------------------------------------------------------
+coulombtype              = PME
+rcoulomb                 = 1.0       ; nm
+pme-order                = 4
+fourierspacing           = 0.12      ; nm
+
+; ---------------------------------------------------------------------------
+; Van der Waals
+; ---------------------------------------------------------------------------
+vdwtype                  = Cut-off
+rvdw                     = 1.0       ; nm
+DispCorr                 = EnerPres  ; Long-range dispersion correction
+
+; ---------------------------------------------------------------------------
+; Temperature coupling (NVE - DISABLED)
+; ---------------------------------------------------------------------------
+tcoupl                   = no        ; NO thermostat for NVE
+
+; ---------------------------------------------------------------------------
+; Pressure coupling (NVE - DISABLED)
+; ---------------------------------------------------------------------------
+pcoupl                   = no        ; NO barostat for NVE
+
+; ---------------------------------------------------------------------------
+; Constraints
+;
+; NOTE: Only MM water H-bonds are constrained (LINCS).
+; QM water bonds are handled by DFTB+ forces (no constraints).
+; ---------------------------------------------------------------------------
+constraints              = h-bonds
+constraint-algorithm     = LINCS
+lincs-order              = 4
+lincs-iter               = 1
+
+; ---------------------------------------------------------------------------
+; QM/MM with DFTB+ (ThDD:T-US-042-E.1 to E.16)
+;
+; CRITICAL SETTINGS FOR ENERGY CONSERVATION:
+; - switch-width = 0.2 nm enables quintic switching
+; - cutoff = 1.2 nm is outer boundary
+; - Switching region: 1.0 to 1.2 nm
+;
+; Per T-US-042-C.5 to C.7: Quintic switching ensures:
+; - C2 continuity of energy and forces
+; - Theoretical drift bound: ~10^-10 kJ/mol/ps/atom
+; ---------------------------------------------------------------------------
+qmmm-cp2k-active              = yes
+qmmm-cp2k-qmgroup             = QM_water
+qmmm-cp2k-qmmethod            = DFTBPLUS
+qmmm-cp2k-qmcharge            = 0
+qmmm-cp2k-qmmultiplicity      = 1
+qmmm-cp2k-dftbplus-hsd        = dftb_in.hsd
+qmmm-cp2k-dftbplus-embedding  = CUTOFF
+qmmm-cp2k-dftbplus-cutoff     = 1.2      ; nm (outer cutoff)
+qmmm-cp2k-dftbplus-switch-width = 0.2    ; nm (quintic switching - REQUIRED!)
+qmmm-cp2k-dftbplus-charge-redistribution = NONE
+
+; ---------------------------------------------------------------------------
+; SCC Convergence (ThDD:T-US-042-N.16)
+;
+; Tight SCC tolerance minimizes drift from electronic convergence errors.
+; Default DFTB+ tolerance is 1e-8 e; we use 1e-10 for drift tests.
+; This is set in dftb_in.hsd, not in MDP.
+; ---------------------------------------------------------------------------
+; (SCC tolerance configured in HSD file: SCCTolerance = 1.0e-10)
+
+; ---------------------------------------------------------------------------
+; Expected Results (from theory, not fabricated)
+;
+; ThDD:T-US-042-N.14:
+; - Drift: should be < 0.01 kJ/mol/ps/atom (specs.md S21.1)
+; - Energy fluctuation: ~100-200 kJ/mol (thermal, N=2652 at 300K)
+; - Temperature fluctuation: ~4.8 K (ThDD:T-US-042-N.9)
+; ---------------------------------------------------------------------------

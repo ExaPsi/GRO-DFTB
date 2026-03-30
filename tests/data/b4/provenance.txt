@@ -1,0 +1,11 @@
+Benchmark: b4
+Date: 2026-02-01T03:01:19Z
+DFTB+ version: DFTB+ development version (commit: fd31d873, base: 25.1)
+unknown
+DFTB+ commit: fd31d873
+DFTB+ binary: dftb+
+SK parameter set: mio-1-1
+SK source: https://github.com/dftbplus/testparams (commit 0e1d95abc70339d017fd53d40c41c041057fd03f)
+Generator script: tools/generate_reference_data.sh
+Host: duri01
+User: vyv

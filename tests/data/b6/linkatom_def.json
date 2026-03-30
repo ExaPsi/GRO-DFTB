@@ -1,0 +1,100 @@
+{
+  "description": "Link atom definitions for B6 alanine-like fragment",
+  "system": "H-N(H)-CH(CH3)-C(=O)-H (capped alanine fragment)",
+  "source": "DFTB+ 25.1 geometry optimization, commit fd31d873",
+
+  "units": {
+    "coordinates": "Angstrom in HSD, Bohr in test code",
+    "bond_length": "Bohr",
+    "note": "All internal quantities in atomic units per specs.md S1.3"
+  },
+
+  "qm_region": {
+    "n_real_atoms": 10,
+    "n_link_atoms": 2,
+    "n_total_atoms": 12,
+    "atom_list": [
+      {"idx": 0, "element": "N", "role": "QM boundary (link 1)"},
+      {"idx": 1, "element": "H", "role": "QM (amide H on N)"},
+      {"idx": 2, "element": "C", "role": "QM (C-alpha)"},
+      {"idx": 3, "element": "H", "role": "QM (H on C-alpha)"},
+      {"idx": 4, "element": "C", "role": "QM (C-beta, methyl)"},
+      {"idx": 5, "element": "H", "role": "QM (methyl H1)"},
+      {"idx": 6, "element": "H", "role": "QM (methyl H2)"},
+      {"idx": 7, "element": "H", "role": "QM (methyl H3)"},
+      {"idx": 8, "element": "C", "role": "QM boundary (link 2, carbonyl C)"},
+      {"idx": 9, "element": "O", "role": "QM (carbonyl O, NOT a boundary)"}
+    ],
+    "note": "Indices 10 and 11 are link H atoms, added by linkatom handler"
+  },
+
+  "mm_region": {
+    "n_atoms": 12,
+    "atom_list": [
+      {"idx": 0, "element": "C", "role": "MM boundary (link 1, acetyl C=O)"},
+      {"idx": 1, "element": "O", "role": "MM (acetyl O)"},
+      {"idx": 2, "element": "C", "role": "MM (acetyl CH3)"},
+      {"idx": 3, "element": "H", "role": "MM (acetyl H1)"},
+      {"idx": 4, "element": "H", "role": "MM (acetyl H2)"},
+      {"idx": 5, "element": "H", "role": "MM (acetyl H3)"},
+      {"idx": 6, "element": "N", "role": "MM boundary (link 2, NMe N)"},
+      {"idx": 7, "element": "H", "role": "MM (NMe H on N)"},
+      {"idx": 8, "element": "C", "role": "MM (NMe CH3)"},
+      {"idx": 9, "element": "H", "role": "MM (NMe H1)"},
+      {"idx": 10, "element": "H", "role": "MM (NMe H2)"},
+      {"idx": 11, "element": "H", "role": "MM (NMe H3)"}
+    ]
+  },
+
+  "link_atoms": [
+    {
+      "id": 1,
+      "description": "N-terminal boundary: QM N - MM C (peptide bond)",
+      "qm_boundary_idx": 0,
+      "mm_boundary_idx": 0,
+      "qm_boundary_element": "N",
+      "mm_boundary_element": "C",
+      "ref_bond_length_bohr": 2.06,
+      "ref_bond_length_angstrom": 1.09,
+      "bond_length_source": "C-H bond length (mio-1-1 equilibrium)",
+      "species_idx": 3,
+      "species_name": "H"
+    },
+    {
+      "id": 2,
+      "description": "C-terminal boundary: QM C (carbonyl) - MM N (NMe)",
+      "qm_boundary_idx": 8,
+      "mm_boundary_idx": 6,
+      "qm_boundary_element": "C",
+      "mm_boundary_element": "N",
+      "ref_bond_length_bohr": 2.06,
+      "ref_bond_length_angstrom": 1.09,
+      "bond_length_source": "C-H bond length (mio-1-1 equilibrium)",
+      "species_idx": 3,
+      "species_name": "H",
+      "note": "Link atom replaces C-N peptide bond; NOT on oxygen (O is double-bonded)"
+    }
+  ],
+
+  "species_mapping": {
+    "description": "Maps element names to species indices in DFTB+ HSD",
+    "C": 0,
+    "N": 1,
+    "O": 2,
+    "H": 3,
+    "note": "H_link uses same species index as H"
+  },
+
+  "charge_redistribution": {
+    "scheme": "none",
+    "note": "Using 'none' scheme for FD validation; shift scheme tested separately in US-035"
+  },
+
+  "validation_requirements": {
+    "fd_tolerance_relative": 1e-4,
+    "fd_tolerance_absolute": 1e-6,
+    "force_conservation_tolerance": 1e-12,
+    "torque_conservation_tolerance": 1e-10,
+    "source": "docs/theory/US-036/04_verification_criteria.md"
+  }
+}

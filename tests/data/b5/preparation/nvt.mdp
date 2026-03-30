@@ -1,0 +1,61 @@
+; B5 Benchmark - NVT Equilibration
+; Purpose: Equilibrate temperature to 300 K
+;
+; Protocol: docs/theory/US-041/b5_generation_protocol.md
+
+; Run control
+integrator  = md            ; Leap-frog integrator
+nsteps      = 50000         ; 100 ps at 2 fs timestep
+dt          = 0.002         ; 2 fs timestep
+
+; Output control
+nstxout     = 5000          ; Coordinates every 10 ps
+nstvout     = 5000          ; Velocities every 10 ps
+nstfout     = 0             ; Don't write forces
+nstenergy   = 500           ; Energy every 1 ps
+nstlog      = 500           ; Log every 1 ps
+
+; Neighbor searching
+nstlist         = 10
+cutoff-scheme   = Verlet
+ns_type         = grid
+
+; Electrostatics
+coulombtype     = PME
+rcoulomb        = 1.0       ; nm
+pme_order       = 4
+fourierspacing  = 0.12      ; nm
+
+; Van der Waals
+vdwtype         = Cut-off
+rvdw            = 1.0       ; nm
+
+; Periodic boundary conditions
+pbc             = xyz
+
+; Temperature coupling
+tcoupl      = V-rescale     ; Velocity rescaling thermostat
+tc-grps     = System        ; Single temperature group
+tau_t       = 0.1           ; Time constant (ps)
+ref_t       = 300           ; Reference temperature (K)
+
+; Pressure coupling (NVT = no pressure coupling)
+pcoupl      = no
+
+; Velocity generation
+gen_vel     = yes           ; Generate velocities from Maxwell-Boltzmann
+gen_temp    = 300           ; Temperature for velocity generation (K)
+gen_seed    = 12345         ; FIXED SEED for reproducibility
+
+; Constraints
+constraints             = h-bonds   ; Constrain bonds with H
+constraint-algorithm    = LINCS
+lincs_iter              = 1
+lincs_order             = 4
+
+; Center of mass motion removal
+comm-mode   = Linear
+nstcomm     = 100
+
+; Dispersion correction
+DispCorr    = EnerPres      ; Account for cutoff dispersion

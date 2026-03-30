@@ -1,0 +1,35 @@
+; B5 Benchmark - Energy Minimization
+; Purpose: Remove bad contacts from initial water box
+;
+; Protocol: docs/theory/US-041/b5_generation_protocol.md
+
+; Algorithm
+integrator  = steep         ; Steepest descent minimization
+nsteps      = 5000          ; Maximum steps
+emtol       = 100.0         ; Stop when Fmax < 100 kJ/mol/nm
+emstep      = 0.01          ; Initial step size (nm)
+
+; Neighbor searching
+nstlist         = 10
+cutoff-scheme   = Verlet
+ns_type         = grid
+
+; Electrostatics
+coulombtype     = PME
+rcoulomb        = 1.0       ; nm
+pme_order       = 4
+fourierspacing  = 0.12      ; nm
+
+; Van der Waals
+vdwtype         = Cut-off
+rvdw            = 1.0       ; nm
+
+; Periodic boundary conditions
+pbc             = xyz
+
+; Output control (minimize disk usage)
+nstxout         = 0         ; Don't write coordinates
+nstvout         = 0         ; Don't write velocities
+nstfout         = 0         ; Don't write forces
+nstenergy       = 100       ; Energy output frequency
+nstlog          = 100       ; Log output frequency

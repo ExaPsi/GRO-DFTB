@@ -1,0 +1,16 @@
+; B5 Benchmark Topology - TIP3P Water Box
+; Generated: 2026-02-04
+; Protocol: docs/theory/US-041/b5_generation_protocol.md
+;
+; System: 884 TIP3P water molecules in 3.0 nm cubic box
+; Purpose: QM/MM stability and PBC validation for Milestone M2
+
+#include "amber99sb-ildn.ff/forcefield.itp"
+#include "amber99sb-ildn.ff/tip3p.itp"
+
+[ system ]
+B5 Benchmark - QM water in TIP3P box
+
+[ molecules ]
+; Molecule   Number
+SOL          884

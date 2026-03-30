@@ -1,0 +1,117 @@
+{
+  "benchmark_id": "B6-solvated",
+  "system": "Alanine dipeptide (Ace-Ala-NMe) in TIP3P water",
+  "description": "Solvated QM/MM NVE energy conservation test with link atoms and PME embedding",
+  "status": "VERIFIED",
+
+  "system_details": {
+    "n_atoms_total": 3163,
+    "n_solute_atoms": 22,
+    "n_waters": 1047,
+    "n_solvent_atoms": 3141,
+    "box_nm": 3.197,
+    "box_type": "cubic",
+    "force_field": "AMBER99SB-ILDN",
+    "water_model": "TIP3P"
+  },
+
+  "qm_region": {
+    "description": "ALA residue: 10 real atoms + 2 link H = 12 augmented",
+    "n_real_atoms": 10,
+    "n_link_atoms": 2,
+    "n_augmented": 12,
+    "qm_atoms_1indexed": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "elements_real": ["N", "H", "C", "H", "C", "H", "H", "H", "C", "O"],
+    "species_mapping": {"N": 0, "H": 1, "C": 2, "O": 3},
+    "species_mapping_note": "First-occurrence ordering in QM atom list",
+    "link_atoms": [
+      {
+        "id": 1,
+        "qm_boundary": "ALA-N (atom 7)",
+        "mm_boundary": "ACE-C (atom 5)",
+        "bond_type": "C-N peptide bond"
+      },
+      {
+        "id": 2,
+        "qm_boundary": "ALA-C (atom 15)",
+        "mm_boundary": "NME-N (atom 17)",
+        "bond_type": "C-N peptide bond"
+      }
+    ]
+  },
+
+  "method": {
+    "hamiltonian": "SCC-DFTB (DFTB2)",
+    "sk_files": "mio-1-1",
+    "embedding": "PME",
+    "damping_sigma_nm": 0.1,
+    "scc_tolerance": 1e-10,
+    "max_scc_iterations": 500,
+    "mixer": "Anderson",
+    "mixing_parameter": 0.05,
+    "mixer_generations": 8,
+    "fermi_temperature_k": 100.0,
+    "force_evaluation": "dynamics"
+  },
+
+  "simulation": {
+    "integrator": "md (leapfrog)",
+    "dt_ps": 0.0005,
+    "n_steps": 200000,
+    "trajectory_ps": 100.0,
+    "ensemble": "NVE",
+    "constraints": "h-bonds (LINCS, MM only)",
+    "nstlist": 10,
+    "rcoulomb_nm": 1.0,
+    "rvdw_nm": 1.0,
+    "fourierspacing_nm": 0.12,
+    "pme_order": 4
+  },
+
+  "preparation": {
+    "em": "Steepest descent, 124 steps, Fmax = 920 kJ/mol/nm",
+    "nvt_equilibration": "100 ps, V-rescale 300 K, dt=2 fs, seed=42",
+    "note": "Classical equilibration (no QM/MM), then NVE with QM/MM"
+  },
+
+  "results": {
+    "drift_per_atom_kj_mol_ps": 6.27e-4,
+    "drift_r_squared": 0.983,
+    "drift_stderr": 5.75e-7,
+    "margin_factor": 8.0,
+    "threshold": 0.005,
+    "pass": true,
+    "block_ratio": 1.18,
+    "qm_energy_mean_ha": -13.4799,
+    "qm_energy_std_kj_mol": 16.79,
+    "temperature_mean_k": 304.4,
+    "temperature_std_k": 4.55,
+    "total_energy_std_kj_mol": 57.74,
+    "scc_failures": 0,
+    "qm_energy_max_jump_kj_mol": 39.73,
+    "wall_time_s": 3897,
+    "ms_per_step": 19.48,
+    "ns_per_day": 2.22,
+    "ntomp": 8
+  },
+
+  "comparison_with_b5": {
+    "b5_drift": 6.14e-4,
+    "b6_drift": 6.27e-4,
+    "ratio": 1.02,
+    "note": "Nearly identical drift rates despite 4x more QM atoms (12 vs 3)"
+  },
+
+  "software": {
+    "gromacs_version": "2027.0-dev-20260210-a7e77dc0f8",
+    "dftbplus_version": "25.1 (commit fd31d873)",
+    "libgrodftb_version": "0.2.0",
+    "date": "2026-02-13"
+  },
+
+  "golden_rule_compliance": {
+    "note": "Per CLAUDE.md: All values from real GROMACS QM/MM NVE simulation",
+    "reference_values_status": "COMPUTED",
+    "provenance_documented": true
+  }
+}

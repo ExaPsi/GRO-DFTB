@@ -1,0 +1,26 @@
+# B6 Alanine Fragment - DFTB+ optimized geometry
+# Coordinates in Bohr (atomic units)
+# For use in test code
+# Conversion: 1 Angstrom = 1.8897259886 Bohr
+#
+# Atom  Element  X (Bohr)            Y (Bohr)            Z (Bohr)
+0       N       -0.0023923575        0.2993819398       -0.3140466218
+1       H       -0.4753068938        2.1874242613       -0.3263055755
+2       C        2.7045188767       -0.0579743372       -0.0519803624
+3       H        3.0788729657       -2.1412590151       -0.0230983537
+4       C        3.7731322214        1.0980302513        2.3571887102
+5       H        5.8334589514        0.8907095156        2.4049062113
+6       H        2.9800475549        0.1739866289        4.0361811360
+7       H        3.3255578038        3.1200297049        2.4668445563
+8       C        4.0435113869        0.9668246452       -2.3851967661
+9       O        6.2195407649        1.5856771488       -2.4202707249
+10      H_link  -0.9772347007       -0.5763182697        1.1233557035
+11      H_link   2.8064341965        1.0735761844       -4.1724790389
+
+# Link atom positions computed from:
+# Link 1: Along N -> MM_C direction at 2.06 Bohr from N
+# Link 2: Along C_carbonyl -> MM_N direction at 2.06 Bohr from C
+
+# MM boundary positions (Bohr):
+# MM[0] C (acetyl):  2.4099088013   1.8643745192  -2.8826056485
+# MM[6] N (NMe):     6.8498855773   0.5998484548  -2.6870888984

@@ -1,0 +1,87 @@
+{
+  "story": "US-050",
+  "description": "Long-duration PME NVE energy conservation test (100 ps)",
+  "date": "2026-02-10",
+  "system": {
+    "name": "B5",
+    "description": "1 QM water (SCC-DFTB2, mio-1-1) in 883 TIP3P waters, 3.0 nm cubic box",
+    "n_atoms": 2652,
+    "n_qm_atoms": 3,
+    "n_mm_waters": 883,
+    "box_nm": [3.0, 3.0, 3.0]
+  },
+  "software": {
+    "gromacs": "2027.0-dev-20260210-a7e77dc0f8-dirty-unknown",
+    "dftbplus": "25.1 (fd31d873)",
+    "libgrodftb": "0.2.0",
+    "compiler": "GCC 11.4.0",
+    "os": "Ubuntu 22.04 (Linux 5.15.0-163-generic)"
+  },
+  "simulation": {
+    "integrator": "md (leap-frog)",
+    "dt_ps": 0.0005,
+    "nsteps": 200000,
+    "duration_ps": 100.0,
+    "ensemble": "NVE",
+    "coulombtype": "PME",
+    "rcoulomb_nm": 1.0,
+    "pme_order": 4,
+    "fourierspacing_nm": 0.12,
+    "pme_grid": [25, 25, 25],
+    "damping_sigma_nm": 0.1,
+    "nstlist": 10,
+    "nstenergy": 10,
+    "constraints": "h-bonds (LINCS)",
+    "ntmpi": 1,
+    "ntomp": 8,
+    "wall_time_seconds": 754.5,
+    "performance_ns_day": 11.45
+  },
+  "input_checksums": {
+    "md.tpr": "md5:c66a523df9e66d562474d8778cf3fbe4",
+    "nve_pme_long.mdp": "md5:8837d5175c62fab0bfd978c06b52be48",
+    "dftb_in.hsd": "md5:6061b029374da6e23c5893d1a01147c5"
+  },
+  "starting_coordinates": {
+    "source": "tests/data/b5_pbc_regression/b5_3p0nm/nvt.gro",
+    "description": "NVT-equilibrated B5 system (same as US-049 3.0 nm box)"
+  },
+  "results": {
+    "drift_kj_mol_ps_atom": 5.303413e-04,
+    "drift_stderr_kj_mol_ps_atom": 5.60e-07,
+    "drift_r_squared": 0.978205,
+    "drift_margin": 18.9,
+    "block_drift_ratio": 1.45,
+    "scc_failures": 0,
+    "consistency_warnings": 0,
+    "qm_energy_mean_kj_mol": -10742.20,
+    "qm_energy_std_kj_mol": 13.36,
+    "qm_energy_deviation_kj_mol": 1.30,
+    "temperature_mean_K": 299.42,
+    "temperature_std_K": 4.86,
+    "energy_jumps_5sigma": 0,
+    "snr": 3.43,
+    "pme_cutoff_drift_ratio": 11.71
+  },
+  "acceptance_criteria": {
+    "AC-1": "PASS (100.0 ps completed)",
+    "AC-2": "PASS (drift 5.30e-04, 18.9x margin)",
+    "AC-3": "PASS (0 SCC failures)",
+    "AC-4": "PASS (0 consistency warnings)",
+    "AC-5": "PASS (QM energy deviation 1.30 kJ/mol < 5 kJ/mol)",
+    "AC-6": "PASS (block ratio 1.45 < 3.0)",
+    "AC-7": "PASS (T = 299.4 +/- 4.9 K)"
+  },
+  "reference_values": {
+    "qm_energy_ref_kj_mol": -10743.5,
+    "qm_energy_ref_source": "US-047 verification (B5 3.0nm PME, 50 ps)",
+    "cutoff_drift_kj_mol_ps_atom": -4.53e-05,
+    "cutoff_drift_source": "US-043b (tests/data/b5/drift_analysis_damped_500ps.json)",
+    "drift_threshold_kj_mol_ps_atom": 0.01,
+    "drift_threshold_source": "specs.md section 21.1",
+    "manuscript_threshold_kj_mol_ps_atom": 0.005,
+    "manuscript_threshold_source": "GROMACS standard (Lindahl2001), reconciled in Paper 1 Section 4.4",
+    "manuscript_margin": 9.4
+  },
+  "gate_criterion": "M2b-D4: Energy conservation under PBC -- SATISFIED"
+}

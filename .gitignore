@@ -1,0 +1,365 @@
+# =============================================================================
+# GRO-DFTB .gitignore
+# GROMACS-DFTB+ QM/MM Interface Project
+# =============================================================================
+
+# =============================================================================
+# Build Directories
+# =============================================================================
+build/
+build-*/
+_build/
+_build_*/
+cmake-build-*/
+out/
+
+# =============================================================================
+# CMake Generated Files
+# =============================================================================
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+!/cmake/*.cmake
+!cmake/Modules/*.cmake
+
+# =============================================================================
+# Compiled Objects and Libraries
+# =============================================================================
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.lib
+*.dll
+*.exe
+*.mod
+*.smod
+
+# =============================================================================
+# Fortran Specific
+# =============================================================================
+*.mod
+*.smod
+*.f90~
+*.F90~
+
+# =============================================================================
+# C/C++ Specific
+# =============================================================================
+*.d
+*.pch
+*.gch
+*.lo
+*.la
+*.lai
+*.Plo
+
+# =============================================================================
+# IDE and Editor Files
+# =============================================================================
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+*.code-workspace
+
+# JetBrains IDEs (CLion, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.suo
+*.sln.docstates
+
+# Eclipse
+.project
+.cproject
+.settings/
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim/Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+tags
+TAGS
+
+# Emacs
+*~
+\#*\#
+.#*
+*.elc
+
+# =============================================================================
+# Operating System Files
+# =============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# =============================================================================
+# Python (build tools, dptools, test scripts)
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg
+*.egg-info/
+dist/
+eggs/
+.eggs/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+.Python
+.python-version
+.venv/
+venv/
+ENV/
+env/
+.tox/
+.nox/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.ipynb_checkpoints/
+
+# =============================================================================
+# GROMACS Output (stray files from gmx commands)
+# =============================================================================
+*.xvg
+*.edr
+*.trr
+*.xtc
+*.gro
+*.cpt
+*.tpr
+# Allow test data and benchmark files
+!tests/data/**
+!benchmarks/**
+
+# =============================================================================
+# DFTB+ Specific
+# =============================================================================
+# Output files
+*.out
+*.log
+dftb_in.hsd
+dftb_pin.hsd
+# Allow test data input files
+!tests/data/**/dftb_in.hsd
+charges.bin
+charges.dat
+detailed.out
+detailed.xml
+results.tag
+band.out
+eigenvec.bin
+eigenvec.out
+md.out
+geo_end.gen
+geo_end.xyz
+
+# Restart files
+*.restart
+restart.bin
+
+# =============================================================================
+# GROMACS Specific
+# =============================================================================
+# Trajectory and structure files
+*.trr
+*.xtc
+*.tng
+*.gro
+!tests/data/**/*.gro
+*.pdb
+!tests/data/**/*.pdb
+*.g96
+
+# Energy and log files
+*.edr
+*.cpt
+*.tpr
+*.mdp
+!tests/data/**/*.mdp
+*.ndx
+!tests/data/**/*.ndx
+
+# Topology files (keep reference ones in tests/data)
+*.top
+!tests/data/**/*.top
+*.itp
+!tests/data/**/*.itp
+
+# GROMACS backup files
+\#*\#
+
+# =============================================================================
+# Slater-Koster Parameter Files
+# =============================================================================
+# Large SK files should not be tracked (use submodule or download script)
+*.skf
+!tests/data/**/*.skf
+slakos/
+
+# =============================================================================
+# Test and Benchmark Outputs
+# =============================================================================
+tests/output/
+tests/tmp/
+tests/**/output/
+benchmarks/results/
+benchmarks/output/
+*.benchmark.json
+
+# =============================================================================
+# Documentation Build
+# =============================================================================
+docs/_build/
+docs/api/generated/
+docs/html/
+docs/latex/
+docs/xml/
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Doxygen
+docs/doxygen/html/
+docs/doxygen/latex/
+docs/doxygen/xml/
+doxygen_*.tmp
+
+# Sphinx
+docs/sphinx/_build/
+
+# =============================================================================
+# Container and CI/CD
+# =============================================================================
+*.tar
+*.tar.gz
+*.tar.bz2
+*.zip
+*.docker
+.docker/
+
+# =============================================================================
+# Profiling and Debugging
+# =============================================================================
+*.prof
+*.gcda
+*.gcno
+*.gcov
+gmon.out
+callgrind.out.*
+cachegrind.out.*
+massif.out.*
+perf.data
+perf.data.old
+
+# Valgrind
+vgcore.*
+
+# Core dumps
+core
+core.*
+
+# =============================================================================
+# Package Managers
+# =============================================================================
+# Conan
+conan.lock
+conanbuildinfo.*
+conaninfo.txt
+graph_info.json
+
+# vcpkg
+vcpkg_installed/
+
+# =============================================================================
+# Miscellaneous
+# =============================================================================
+*.bak
+*.backup
+*.orig
+*.tmp
+*.temp
+*~
+.cache/
+.ccache/
+compile_commands.json
+.clangd/
+.task-master/
+
+# =============================================================================
+# Project-Specific Ignores
+# =============================================================================
+# Scratch and temporary work (should never exist at root per CLAUDE.md rules)
+scratch/
+tmp/
+temp/
+
+# Large external dependencies that should be fetched, not committed
+# (external/ is tracked but large binaries within should be ignored)
+external/dftbplus/build/
+external/dftbplus/_build/
+external/gromacs/build/
+external/gromacs/_build/
+
+# User-specific configuration
+.env
+.env.local
+*.local
+
+# =============================================================================
+# Manuscript (tracked in separate local git repo)
+# =============================================================================
+docs/Manuscript/
+
+# =============================================================================
+# End of .gitignore
+# =============================================================================
+external/_install_dftb/

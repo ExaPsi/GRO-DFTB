@@ -1,0 +1,43 @@
+{
+  "story": "US-049",
+  "description": "PBC regression tests across 3 box sizes for PME QM/MM embedding",
+  "dftbplus_version": "25.1",
+  "dftbplus_commit": "fd31d873",
+  "gromacs_version": "2027.0-dev",
+  "gromacs_build_flags": "GMX_DFTB=ON",
+  "sk_parameters": "mio-1-1",
+  "date": "2026-02-10",
+  "box_sizes_nm": [2.5, 3.0, 4.0],
+  "nve_duration_ps": 10,
+  "timestep_fs": 0.5,
+  "nsteps": 20000,
+  "rcoulomb_nm": 1.0,
+  "fourierspacing_nm": 0.12,
+  "ewald_rtol": 1e-5,
+  "damping_sigma_nm": 0.1,
+  "nstlist": 10,
+  "qm_atoms": "1 O, 2 H, 3 H (water molecule)",
+  "qm_method": "SCC-DFTB2",
+  "scc_tolerance": 1e-10,
+  "mixer": "Anderson",
+  "system_base": "B5 (QM water in TIP3P box)",
+  "subdirectories": {
+    "b5_2p5nm": "2.5 nm cubic box",
+    "b5_3p0nm": "3.0 nm cubic box",
+    "b5_4p0nm": "4.0 nm cubic box"
+  },
+  "analysis_script": "tools/analyze_pbc_regression.py",
+  "acceptance_criteria_source": "docs/stories/US-049.md",
+  "reference_qm_energy_source": "US-047 verification report (PME reference: -10743.5 kJ/mol)",
+  "gromacs_commit": "a7e77dc0f8",
+  "libgrodftb_version": "0.2.0",
+  "results": {
+    "b5_2p5nm": {"n_atoms": 1527, "n_sol": 509, "drift_kj_mol_ps_atom": 2.07e-04, "qm_energy_mean_kj_mol": -10742.49, "scc_failures": 0, "consistency_warnings": 0},
+    "b5_3p0nm": {"n_atoms": 2652, "n_sol": 884, "drift_kj_mol_ps_atom": -4.94e-04, "qm_energy_mean_kj_mol": -10744.86, "scc_failures": 0, "consistency_warnings": 0},
+    "b5_4p0nm": {"n_atoms": 6492, "n_sol": 2164, "drift_kj_mol_ps_atom": -5.37e-05, "qm_energy_mean_kj_mol": -10746.97, "scc_failures": 0, "consistency_warnings": 0}
+  },
+  "drift_ratio": 9.20,
+  "ewald_alpha_nm_inv": 3.123413,
+  "overall_verdict": "PASS",
+  "drift_threshold_source": "docs/specification/specs.md section 21.1"
+}

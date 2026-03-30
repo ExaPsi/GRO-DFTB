@@ -1,0 +1,72 @@
+; GRO-DFTB US-049: NVT Equilibration (classical, no QM/MM)
+;
+; Purpose: Thermalize solvated boxes before PME NVE QM/MM production
+; Duration: 10 ps at dt=0.001 (10,000 steps)
+;
+; LGPL-3.0-or-later
+
+; ---------------------------------------------------------------------------
+; Run parameters
+; ---------------------------------------------------------------------------
+integrator               = md
+nsteps                   = 10000     ; 10 ps
+dt                       = 0.001     ; 1.0 fs
+
+; Generate velocities from Maxwell-Boltzmann at 300 K
+gen-vel                  = yes
+gen-temp                 = 300
+
+; ---------------------------------------------------------------------------
+; Output control
+; ---------------------------------------------------------------------------
+nstxout                  = 0
+nstvout                  = 0
+nstfout                  = 0
+nstenergy                = 100
+nstlog                   = 1000
+nstxout-compressed       = 1000
+compressed-x-precision   = 100
+
+; ---------------------------------------------------------------------------
+; Neighbor searching
+; ---------------------------------------------------------------------------
+cutoff-scheme            = Verlet
+nstlist                  = 10
+pbc                      = xyz
+verlet-buffer-tolerance  = 0.005
+
+; ---------------------------------------------------------------------------
+; Electrostatics (PME)
+; ---------------------------------------------------------------------------
+coulombtype              = PME
+rcoulomb                 = 1.0
+pme-order                = 4
+fourierspacing           = 0.12
+
+; ---------------------------------------------------------------------------
+; Van der Waals
+; ---------------------------------------------------------------------------
+vdwtype                  = Cut-off
+rvdw                     = 1.0
+DispCorr                 = EnerPres
+
+; ---------------------------------------------------------------------------
+; Temperature coupling (V-rescale thermostat)
+; ---------------------------------------------------------------------------
+tcoupl                   = v-rescale
+tc-grps                  = System
+tau_t                    = 0.1
+ref_t                    = 300
+
+; ---------------------------------------------------------------------------
+; Pressure coupling (DISABLED - NVT only)
+; ---------------------------------------------------------------------------
+pcoupl                   = no
+
+; ---------------------------------------------------------------------------
+; Constraints
+; ---------------------------------------------------------------------------
+constraints              = h-bonds
+constraint-algorithm     = LINCS
+lincs-order              = 4
+lincs-iter               = 1

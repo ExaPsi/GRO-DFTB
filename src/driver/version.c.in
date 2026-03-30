@@ -1,0 +1,21 @@
+/*
+ * SDD:specs.md:§17 — Library version metadata.
+ * SDD:specs.md:§5.3 — grodftb_version() implementation.
+ *
+ * Version numbers injected by CMake from PROJECT_VERSION.
+ * Git hash injected by CMake via execute_process(git rev-parse).
+ */
+
+#include "grodftb/driver.h"
+
+static const grodftb_version_t version_info = {
+    .major    = @PROJECT_VERSION_MAJOR@,
+    .minor    = @PROJECT_VERSION_MINOR@,
+    .patch    = @PROJECT_VERSION_PATCH@,
+    .git_hash = "@GRODFTB_GIT_HASH@"
+};
+
+const grodftb_version_t* grodftb_version(void)
+{
+    return &version_info;
+}

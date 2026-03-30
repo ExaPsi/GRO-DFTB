@@ -1,0 +1,100 @@
+# B6 Geometry Optimization - Version 2
+# System: 12-atom capped alanine fragment
+#
+# Correct topology:
+# - 10 QM real atoms forming: N(H)-CH(CH3)-C(=O)
+# - Link H1 caps N (where acetyl was attached)
+# - Link H2 caps carbonyl C (where NMe was attached)
+#
+# The capped molecule is: H-NH-CH(CH3)-CHO (N-formylalaninal with H cap)
+# Actually it's more like: H-N(H)-CH(CH3)-C(=O)-H
+#
+# Atom order:
+# 0: N (QM boundary for link 1)
+# 1: H (amide H on N)
+# 2: C (alpha carbon)
+# 3: H (on C-alpha)
+# 4: C (beta carbon, methyl)
+# 5: H (methyl H1)
+# 6: H (methyl H2)
+# 7: H (methyl H3)
+# 8: C (carbonyl carbon, QM boundary for link 2)
+# 9: O (carbonyl oxygen)
+# 10: H (link atom 1, capping N)
+# 11: H (link atom 2, capping carbonyl C, acts like aldehyde H)
+#
+# Species indices: C=0, N=1, O=2, H=3
+# Atom type sequence: N, H, C, H, C, H, H, H, C, O, H, H
+#                     1, 3, 0, 3, 0, 3, 3, 3, 0, 2, 3, 3
+
+Geometry = GenFormat {
+  12 C
+  C  N  O  H
+  # Starting from typical bond lengths (in Angstrom, then convert to Bohr):
+  # N-H: 1.01 A, N-C: 1.47 A, C-C: 1.54 A, C=O: 1.23 A, C-H: 1.09 A
+  # Bohr conversion: 1 A = 1.8897 Bohr
+  #
+  # Build molecule along x-axis:
+  # N at origin, C-alpha along +x, C-beta and C=O from C-alpha
+  #
+  1   2    0.000    0.000    0.000      # N at origin
+  2   4    0.000    1.900    0.000      # H on N (+y)
+  3   1    2.780    0.000    0.000      # C-alpha (+x from N)
+  4   4    2.780   -2.060    0.000      # H on C-alpha (-y)
+  5   1    4.100    1.300    2.200      # C-beta (methyl, +x+y+z)
+  6   4    3.500    0.500    4.050      # methyl H1
+  7   4    3.500    3.200    2.200      # methyl H2
+  8   4    6.150    1.300    2.200      # methyl H3
+  9   1    4.100    1.300   -2.200      # carbonyl C (+x+y-z from C-alpha)
+  10  3    5.700    2.650   -2.900      # carbonyl O (C=O bond)
+  11  4   -2.060    0.000    0.000      # link H1 (capping N, -x)
+  12  4    4.100    1.300   -4.250      # link H2 (capping carbonyl C, aldehyde H)
+}
+
+Driver = ConjugateGradient {
+  MaxForceComponent = 1e-5
+  MaxSteps = 500
+  OutputPrefix = "geom.out"
+}
+
+Hamiltonian = DFTB {
+  SCC = Yes
+  SCCTolerance = 1e-8
+  MaxSCCIterations = 500
+
+  # Use more aggressive damping for difficult convergence
+  Mixer = Broyden {
+    MixingParameter = 0.05
+    InverseJacobiWeight = 0.01
+    WeightFactor = 0.01
+  }
+
+  SlaterKosterFiles = Type2FileNames {
+    Prefix = "../../slako/mio-1-1/"
+    Separator = "-"
+    Suffix = ".skf"
+  }
+
+  MaxAngularMomentum {
+    C = "p"
+    N = "p"
+    O = "p"
+    H = "s"
+  }
+
+  Filling = Fermi {
+    Temperature [Kelvin] = 300.0
+  }
+}
+
+Analysis {
+  MullikenAnalysis = Yes
+}
+
+Options {
+  WriteDetailedOut = Yes
+}
+
+ParserOptions {
+  ParserVersion = 14
+}

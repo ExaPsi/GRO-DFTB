@@ -1,0 +1,58 @@
+; B5 NVE QM/MM Simulation - DFTB+ Integration Test
+; System: 1 QM water in 884 TIP3P waters
+; Purpose: Energy conservation validation for DFTB+ QM/MM
+
+; Run parameters
+integrator               = md
+nsteps                   = 2000
+dt                       = 0.0005    ; 0.5 fs timestep (conservative for QM/MM)
+
+; Output control
+nstxout                  = 100       ; Save coordinates every 50 fs
+nstvout                  = 100       ; Save velocities every 50 fs
+nstenergy                = 10        ; Save energies every 5 fs
+nstlog                   = 10        ; Log every 5 fs
+nstxout-compressed       = 0         ; No compressed trajectory
+
+; Neighbor searching
+cutoff-scheme            = Verlet
+nstlist                  = 10
+pbc                      = xyz
+rlist                    = 1.0
+
+; Electrostatics
+coulombtype              = PME
+rcoulomb                 = 1.0
+fourierspacing           = 0.12
+
+; Van der Waals
+vdwtype                  = Cut-off
+rvdw                     = 1.0
+DispCorr                 = EnerPres
+
+; Temperature coupling (NVE - no thermostat)
+tcoupl                   = no
+gen-vel                  = yes
+gen-temp                 = 300
+gen-seed                 = 12345
+
+; Pressure coupling (NVE - no barostat)
+pcoupl                   = no
+
+; Constraints
+constraints              = h-bonds    ; SHAKE/LINCS for MM waters
+constraint-algorithm     = LINCS
+lincs-order              = 4
+lincs-iter               = 1
+
+; QM/MM with DFTB+ (module name is qmmm-cp2k)
+qmmm-cp2k-active              = yes
+qmmm-cp2k-qmgroup             = QM_water
+qmmm-cp2k-qmmethod            = DFTBPLUS
+qmmm-cp2k-qmcharge            = 0
+qmmm-cp2k-qmmultiplicity      = 1
+qmmm-cp2k-dftbplus-hsd        = tests/data/b5/dftb_in.hsd
+qmmm-cp2k-dftbplus-embedding  = CUTOFF
+qmmm-cp2k-dftbplus-cutoff     = 1.2
+qmmm-cp2k-dftbplus-switch-width = 0.2   ; nm (quintic switching - required for energy conservation)
+qmmm-cp2k-dftbplus-charge-redistribution = NONE
