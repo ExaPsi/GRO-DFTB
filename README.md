@@ -56,12 +56,17 @@ cmake -B build \
   -DDFTBPlus_ROOT=external/dftbplus/_install
 cmake --build build
 
-# 4. Run tests
+# 4. Run libgrodftb tests
 ctest --test-dir build
 
-# 5. Build GROMACS with DFTB+ support
+# 5. Patch GROMACS and build with DFTB+ support
+cd external/gromacs
+git apply ../../patches/gromacs-dftb.patch
+cd ../..
 bash tools/build_gromacs.sh
 ```
+
+See `patches/README.md` for details on the GROMACS patch.
 
 See `examples/b5_tutorial/README.md` for a complete tutorial on running a QM/MM NVE trajectory.
 

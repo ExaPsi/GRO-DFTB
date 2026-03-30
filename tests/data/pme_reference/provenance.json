@@ -1,0 +1,1 @@
+{"description": "PME kernel reference data for unit-level validation", "source": "Analytic Ewald potential computed by reference Python scripts in this directory", "systems": ["R-046-1 (single charge, L=3nm)", "R-046-2 (B4 periodic, L=2nm)"]}

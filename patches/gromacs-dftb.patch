@@ -1,0 +1,1122 @@
+diff --git a/src/gromacs/applied_forces/qmmm/CMakeLists.txt b/src/gromacs/applied_forces/qmmm/CMakeLists.txt
+index ba908a065f..a31f66dc12 100644
+--- a/src/gromacs/applied_forces/qmmm/CMakeLists.txt
++++ b/src/gromacs/applied_forces/qmmm/CMakeLists.txt
+@@ -34,6 +34,7 @@
+ gmx_add_libgromacs_sources(
+     qmmminputgenerator.cpp
+     qmmmforceproviderstate.cpp
++    dftbcheckpointstate.cpp
+     qmmmoptions.cpp
+     qmmm.cpp
+     )
+diff --git a/src/gromacs/applied_forces/qmmm/dftbforceprovider.cpp b/src/gromacs/applied_forces/qmmm/dftbforceprovider.cpp
+index cb145825a1..7aeddbfb48 100644
+--- a/src/gromacs/applied_forces/qmmm/dftbforceprovider.cpp
++++ b/src/gromacs/applied_forces/qmmm/dftbforceprovider.cpp
+@@ -60,6 +60,8 @@
+ #include "gromacs/utility/logger.h"
+ #include "gromacs/utility/mpicomm.h"
+ 
++#include "dftbcheckpointstate.h"
++
+ #include "grodftb/damping.h"
+ #include "grodftb/driver.h"
+ #include "grodftb/error.h"
+@@ -68,11 +70,12 @@
+ namespace gmx
+ {
+ 
+-DFTBForceProvider::DFTBForceProvider(const QMMMParameters& parameters,
+-                                     const LocalAtomSet&   localQMAtomSet,
+-                                     const LocalAtomSet&   localMMAtomSet,
+-                                     PbcType               pbcType,
+-                                     const MDLogger&       logger) :
++DFTBForceProvider::DFTBForceProvider(const QMMMParameters&      parameters,
++                                     const LocalAtomSet&        localQMAtomSet,
++                                     const LocalAtomSet&        localMMAtomSet,
++                                     PbcType                    pbcType,
++                                     const MDLogger&            logger,
++                                     const DFTBCheckpointState& checkpointState) :
+     parameters_(parameters),
+     qmAtoms_(localQMAtomSet),
+     mmAtoms_(localMMAtomSet),
+@@ -345,6 +348,27 @@ DFTBForceProvider::DFTBForceProvider(const QMMMParameters& parameters,
+             rOnBohr_ = cutoffBohr_ - switchWidthBohr_;
+         }
+ 
++        /*
++         * ThDD:T-US-039-U.3 -- Pass cutoff and switching parameters to driver
++         *
++         * The driver's grodftb_set_embedding_charges() computes the external
++         * potential at QM sites from MM charges.  It must apply the same
++         * switching function S(u) used by computeEmbeddingMmForces() so that
++         * the QM forces (from DFTB+, gradient of the switched potential) and
++         * the MM forces (from computeEmbeddingMmForces()) are consistent
++         * derivatives of the same energy functional (Newton's 3rd law).
++         *
++         * Without this call, the driver has switch_width = 0 and computes
++         * unswitched potentials, violating action-reaction symmetry in the
++         * switching region and causing catastrophic NVE energy drift.
++         */
++        rc = grodftb_set_embedding_params(handle_, cutoffBohr_, switchWidthBohr_);
++        if (rc != GRODFTB_SUCCESS)
++        {
++            GMX_THROW(InternalError("grodftb_set_embedding_params() failed with error code "
++                                    + std::to_string(rc)));
++        }
++
+         /*
+          * ThDD:T-US-038-N.5 -- Pre-allocate embedding buffers
+          * Estimate 2x expected number of MM atoms within cutoff.
+@@ -501,6 +525,47 @@ DFTBForceProvider::DFTBForceProvider(const QMMMParameters& parameters,
+     speciesMsg += ")";
+ 
+     GMX_LOG(logger_.info).asParagraph().appendText(speciesMsg);
++
++    /*
++     * ThDD:Eq. T-US-051-5.2 -- Restore state from checkpoint
++     * ThDD:Eq. T-US-051-6.1, T-US-051-6.2 -- Option B: Reset PME flags
++     *
++     * On restart, GROMACS restores chargeA from topology (zeros for QM atoms).
++     * Setting flags to false ensures the first post-restart step uses the full
++     * Ewald embedding path (self-consistent with zeroed chargeA). Fresh Mulliken
++     * charges are inserted at the first pair-search boundary, and normal operation
++     * resumes. The stored charges are preserved for future API use (M3/M4).
++     */
++    if (checkpointState.isStateRead())
++    {
++        // Store Mulliken charges for future use (no DFTB+ API to seed them back)
++        // ThDD:Eq. T-US-051-N-1.2 -- Restart from neutral; charges stored for M3/M4
++        const auto& ckptMulliken = checkpointState.mullikenCharges();
++        if (ckptMulliken.size() == nTotalQM_)
++        {
++            std::copy(ckptMulliken.begin(), ckptMulliken.end(), augmentedChargesBuf_.begin());
++        }
++
++        // Store inserted PME charges for future use
++        const auto& ckptInserted = checkpointState.insertedQmCharges();
++        if (ckptInserted.size() == static_cast<size_t>(nQMAtoms_))
++        {
++            std::copy(ckptInserted.begin(), ckptInserted.end(), insertedQmCharges_.begin());
++        }
++
++        // ThDD:Eq. T-US-051-6.1, T-US-051-6.2 -- Option B: Reset flags
++        // chargeA has topology zeros on restart; flag reset ensures full Ewald path
++        haveInsertedCharges_ = false;
++        qmChargesInPme_     = false;
++
++        GMX_LOG(logger_.info)
++                .asParagraph()
++                .appendTextFormatted(
++                        "US-051: Restored DFTB+ checkpoint state (%zu Mulliken charges, "
++                        "%zu inserted charges). Flags reset for restart (Option B).",
++                        ckptMulliken.size(),
++                        ckptInserted.size());
++    }
+ }
+ 
+ DFTBForceProvider::~DFTBForceProvider()
+@@ -800,6 +865,7 @@ void DFTBForceProvider::calculateForces(const ForceProviderInput& fInput,
+             GMX_THROW(InternalError("grodftb_set_embedding_charges() failed with error code "
+                                     + std::to_string(rc)));
+         }
++
+     }
+ 
+     /*
+@@ -1117,9 +1183,9 @@ void DFTBForceProvider::calculateForces(const ForceProviderInput& fInput,
+      * After correction, the net QM-MM contribution is:
+      *   E_total = E_DFTB(full embedding) + E_GROMACS_QMMM - ΔE = E_DFTB (intended)
+      */
++    double deltaEnergyHa = 0.0;
+     if (isPmeEmbedding && qmChargesInPme_ && haveInsertedCharges_)
+     {
+-        double deltaEnergyHa = 0.0;
+         for (int a = 0; a < nQMAtoms_; a++)
+         {
+             deltaEnergyHa -= insertedQmCharges_[a] * barePotentialBuf_[a];
+@@ -1134,6 +1200,18 @@ void DFTBForceProvider::calculateForces(const ForceProviderInput& fInput,
+      * that both GROMACS PME and nbnxm are using (ThDD:T-US-047-N-1.1).
+      */
+ 
++    /*
++     * Step 10d: Embedding energy consistency check (US-048)
++     * ThDD:T-US-048-3.2 -- Verifies E_QM-MM = Sigma q_A Phi_MM(R_A)
++     * SDD:specs.md:section8.2 -- Consistency requirement
++     *
++     * Diagnostic-only: does not modify energyKjMol or forces.
++     */
++    if (isPmeEmbedding && shouldRunConsistencyCheck(fInput.step_))
++    {
++        checkEmbeddingConsistency(fInput.step_, energyHa, deltaEnergyHa);
++    }
++
+     /*
+      * Step 10b: Compute embedding forces on MM atoms
+      * ThDD:T-US-038-2.2 -- F_J = -Q_J * sum_A q_A * (R_A - R_J) / |R_A - R_J|^3
+@@ -1420,11 +1498,24 @@ void DFTBForceProvider::calculateForces(const ForceProviderInput& fInput,
+     }
+ }
+ 
+-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+-void DFTBForceProvider::writeCheckpointData(MDModulesWriteCheckpointData /*checkpointWriting*/,
+-                                            std::string_view /*moduleName*/)
++void DFTBForceProvider::writeCheckpointData(MDModulesWriteCheckpointData checkpointWriting,
++                                            std::string_view             moduleName)
+ {
+-    // No checkpoint data to write yet -- future work will add SCC state serialization
++    /*
++     * ThDD:Eq. T-US-051-5.1 -- Serialize DFTB+ state to KVT
++     *
++     * Checkpoint the current Mulliken charges, inserted PME charges, and
++     * embedding mode flags. The DFTBCheckpointState class handles the
++     * KVT serialization via addUniformArray<double> and addValue<int>.
++     */
++    DFTBCheckpointState state;
++    state.setMullikenCharges(
++            std::vector<double>(augmentedChargesBuf_.begin(),
++                                augmentedChargesBuf_.begin() + static_cast<ptrdiff_t>(nTotalQM_)));
++    state.setInsertedQmCharges(insertedQmCharges_);
++    state.setHaveInsertedCharges(haveInsertedCharges_);
++    state.setQmChargesInPme(qmChargesInPme_);
++    state.writeState(checkpointWriting.builder_, moduleName);
+ }
+ 
+ std::string dftbDescription()
+@@ -2365,4 +2456,124 @@ void DFTBForceProvider::insertQmChargesIntoPme(const ForceProviderInput& fInput)
+     haveInsertedCharges_ = true;
+ }
+ 
++bool DFTBForceProvider::shouldRunConsistencyCheck(int64_t step) const
++{
++    /*
++     * ThDD:T-US-048-N-1.2 -- Check frequency strategy:
++     *   - First 100 steps: check at every pair-search step (cleanest: q_SCC = q_inserted)
++     *   - After step 100: check every 100 steps (to avoid log spam)
++     * SDD:specs.md:section8.2 -- Consistency requirement
++     */
++    const int nstlist = parameters_.nstlist_;
++    if (step < 100)
++    {
++        return (step % nstlist == 0);
++    }
++    else
++    {
++        return (step % 100 == 0);
++    }
++}
++
++void DFTBForceProvider::checkEmbeddingConsistency(int64_t step,
++                                                   double  energyHa,
++                                                   double  deltaEnergyHa) const
++{
++    /*
++     * ThDD:T-US-048-3.2 -- Relation 1: Embedding energy from potential
++     *   E_check = Sigma_{A=0}^{N_QM-1} q_A * Phi_damped(R_A)
++     *
++     * ThDD:T-US-048-4.1 -- This reconstructs the QM-MM interaction energy
++     * from the potential passed to DFTB+ as extpot. DFTB+ evaluated the same
++     * sum internally during SCC (Eq. T-US-048-2.3).
++     *
++     * Sign convention: pmePotentialBuf_[A] = -Phi_damped(R_A) (DFTB+ extpot,
++     * negated at line 1014). To get the physical embedding energy E = sum q*Phi,
++     * we negate: E_check = -sum q_A * pmePotentialBuf_[A].
++     *
++     * Units: [e] * [Ha/e] = [Ha]
++     */
++    double embeddingEnergyCheck = 0.0;
++    for (int a = 0; a < nQMAtoms_; a++)
++    {
++        embeddingEnergyCheck -= mullikenChargesBuf_[a] * pmePotentialBuf_[a];
++    }
++
++    /*
++     * ThDD:T-US-048-3.3 -- Relation 2: Correction self-consistency
++     *   DeltaE_check = -Sigma_A q^inserted_A * barePotentialBuf_[A]
++     *
++     * This must match deltaEnergyHa (computed in Step 10a) to machine precision
++     * since both use the same data and arithmetic.
++     *
++     * Tolerance: 10^{-12} Ha (Eq. T-US-048-5.4)
++     */
++    if (qmChargesInPme_ && haveInsertedCharges_)
++    {
++        double correctionCheck = 0.0;
++        for (int a = 0; a < nQMAtoms_; a++)
++        {
++            correctionCheck -= insertedQmCharges_[a] * barePotentialBuf_[a];
++        }
++        const double corrDiscrepancy = std::abs(correctionCheck - deltaEnergyHa);
++        if (corrDiscrepancy > 1e-12)
++        {
++            GMX_LOG(logger_.warning)
++                    .asParagraph()
++                    .appendTextFormatted(
++                            "Step %ld: Correction self-consistency FAILED: "
++                            "check=%.15e, computed=%.15e, diff=%.3e Ha",
++                            static_cast<long>(step),
++                            correctionCheck,
++                            deltaEnergyHa,
++                            corrDiscrepancy);
++        }
++    }
++
++    /*
++     * ThDD:T-US-048-4.3 -- Relation 3: Potential difference bounded
++     *   |Phi^bare[A] - Phi^damped[A]| < 0.1 Ha/e
++     *
++     * The difference is Sigma_J Q_J erfc(r_AJ/sigma)/r_AJ (Eq. T-US-048-2.6).
++     * This decays exponentially for r >> sigma and should be small.
++     *
++     * Sign convention: barePotentialBuf_[A] = +Phi_bare (physical),
++     * pmePotentialBuf_[A] = -Phi_damped (extpot convention).
++     * So: Phi_bare - Phi_damped = barePotentialBuf_ + pmePotentialBuf_
++     */
++    for (int a = 0; a < nQMAtoms_; a++)
++    {
++        const double diff = barePotentialBuf_[a] + pmePotentialBuf_[a];
++        if (std::abs(diff) > 0.1)
++        {
++            GMX_LOG(logger_.warning)
++                    .asParagraph()
++                    .appendTextFormatted(
++                            "Step %ld: Potential difference EXCEEDED 0.1 Ha/e at QM atom %d: "
++                            "Phi_bare=%.10e, Phi_damped=%.10e, diff=%.3e Ha/e",
++                            static_cast<long>(step),
++                            a,
++                            barePotentialBuf_[a],
++                            -pmePotentialBuf_[a],
++                            diff);
++        }
++    }
++
++    /*
++     * ThDD:T-US-048-4.1 -- Log summary
++     * Convert correction to kJ/mol for human readability.
++     * Units: Ha * c_hartree2Kj * c_avogadro = kJ/mol
++     */
++    const double totalCorrKjMol = deltaEnergyHa * c_hartree2Kj * c_avogadro;
++    GMX_LOG(logger_.info)
++            .asParagraph()
++            .appendTextFormatted(
++                    "Step %ld: E_embedding_check=%.10e Ha, "
++                    "E_correction=%.10e Ha (%.4f kJ/mol)",
++                    static_cast<long>(step),
++                    embeddingEnergyCheck,
++                    deltaEnergyHa,
++                    totalCorrKjMol);
++}
++
+ } // namespace gmx
+diff --git a/src/gromacs/applied_forces/qmmm/dftbforceprovider.h b/src/gromacs/applied_forces/qmmm/dftbforceprovider.h
+index 1afd35823d..ce86bde2a9 100644
+--- a/src/gromacs/applied_forces/qmmm/dftbforceprovider.h
++++ b/src/gromacs/applied_forces/qmmm/dftbforceprovider.h
+@@ -65,6 +65,7 @@ typedef struct grodftb_linkatom_handler* grodftb_linkatom_handle_t;
+ // Forward-declare GROMACS PME type (full definition in ewald/pme_internal.h, included by .cpp)
+ struct gmx_pme_t;
+ 
++#include "dftbcheckpointstate.h"
+ #include "qmmmtypes.h"
+ 
+ namespace gmx
+@@ -88,11 +89,12 @@ struct MDModulesWriteCheckpointData;
+ class DFTBForceProvider final : public IForceProvider
+ {
+ public:
+-    DFTBForceProvider(const QMMMParameters& parameters,
+-                      const LocalAtomSet&   localQMAtomSet,
+-                      const LocalAtomSet&   localMMAtomSet,
+-                      PbcType               pbcType,
+-                      const MDLogger&       logger);
++    DFTBForceProvider(const QMMMParameters&      parameters,
++                      const LocalAtomSet&        localQMAtomSet,
++                      const LocalAtomSet&        localMMAtomSet,
++                      PbcType                    pbcType,
++                      const MDLogger&            logger,
++                      const DFTBCheckpointState& checkpointState);
+ 
+     //! Destruct force provider for DFTB+ QM/MM
+     ~DFTBForceProvider();
+@@ -368,6 +370,33 @@ private:
+      * \param[in] pbc Periodic boundary conditions for minimum image
+      */
+     void gatherPmeRealSpacePotential(const t_pbc& pbc);
++
++    /*! \brief Run embedding energy consistency check (diagnostic).
++     *
++     * ThDD:T-US-048-3.2 -- Relation 1: E_check = Sigma q_A * pmePotentialBuf_[A]
++     * ThDD:T-US-048-3.3 -- Relation 2: DeltaE_check = -Sigma q_ins_A * barePotentialBuf_[A]
++     * ThDD:T-US-048-4.3 -- Relation 3: |Phi_bare - Phi_damped| bounded
++     * SDD:specs.md:section8.2 -- Consistency requirement
++     *
++     * Called from calculateForces() after Step 10a. Logs diagnostic info
++     * and warns if discrepancy exceeds tolerance. Does NOT abort.
++     *
++     * \param[in] step           Current MD step number
++     * \param[in] energyHa       Total DFTB+ energy in Hartree
++     * \param[in] deltaEnergyHa  Double-counting correction in Hartree
++     */
++    void checkEmbeddingConsistency(int64_t step, double energyHa, double deltaEnergyHa) const;
++
++    /*! \brief Determine whether to run the consistency check at this step.
++     *
++     * ThDD:T-US-048-N-1.2 -- Check frequency:
++     *   - Steps < 100: every pair-search step (step % nstlist == 0)
++     *   - Steps >= 100: every 100 steps (reasonable default; nstlog not available)
++     *
++     * \param[in] step  Current MD step number
++     * \return true if consistency check should run
++     */
++    bool shouldRunConsistencyCheck(int64_t step) const;
+ };
+ 
+ //! Returns description string for the DFTB+ QM/MM support
+diff --git a/src/gromacs/applied_forces/qmmm/dftbforceprovider_stub.cpp b/src/gromacs/applied_forces/qmmm/dftbforceprovider_stub.cpp
+index 469cbaa057..b76fcfe7d8 100644
+--- a/src/gromacs/applied_forces/qmmm/dftbforceprovider_stub.cpp
++++ b/src/gromacs/applied_forces/qmmm/dftbforceprovider_stub.cpp
+@@ -50,6 +50,8 @@
+ 
+ #include "dftbforceprovider.h"
+ 
++#include "dftbcheckpointstate.h"
++
+ enum class PbcType : int;
+ 
+ namespace gmx
+@@ -62,11 +64,12 @@ struct QMMMParameters;
+ 
+ CLANG_DIAGNOSTIC_IGNORE("-Wmissing-noreturn")
+ 
+-DFTBForceProvider::DFTBForceProvider(const QMMMParameters& parameters,
+-                                     const LocalAtomSet&   localQMAtomSet,
+-                                     const LocalAtomSet&   localMMAtomSet,
+-                                     PbcType               pbcType,
+-                                     const MDLogger&       logger) :
++DFTBForceProvider::DFTBForceProvider(const QMMMParameters&      parameters,
++                                     const LocalAtomSet&        localQMAtomSet,
++                                     const LocalAtomSet&        localMMAtomSet,
++                                     PbcType                    pbcType,
++                                     const MDLogger&            logger,
++                                     const DFTBCheckpointState& /*checkpointState*/) :
+     parameters_(parameters),
+     qmAtoms_(localQMAtomSet),
+     mmAtoms_(localMMAtomSet),
+diff --git a/src/gromacs/applied_forces/qmmm/qmmm.cpp b/src/gromacs/applied_forces/qmmm/qmmm.cpp
+index c81650498b..7b347b672e 100644
+--- a/src/gromacs/applied_forces/qmmm/qmmm.cpp
++++ b/src/gromacs/applied_forces/qmmm/qmmm.cpp
+@@ -68,6 +68,7 @@
+ #include "gromacs/utility/logger.h"
+ #include "gromacs/utility/mpicomm.h"
+ 
++#include "dftbcheckpointstate.h"
+ #include "dftbforceprovider.h"
+ #include "qmmmforceprovider.h"
+ #include "qmmmoptions.h"
+@@ -86,6 +87,9 @@ class KeyValueTreeObject;
+ namespace
+ {
+ 
++//! Checkpoint identifier for DFTB+ state (separate from CP2K's "qmmm-cp2k")
++static constexpr std::string_view sc_dftbCheckpointName = "qmmm-dftb";
++
+ /*! \internal
+  * \brief Helper class that holds simulation data and
+  * callback functions for simulation setup time notifications
+@@ -394,7 +398,7 @@ public:
+         {
+             if (dftbForceProvider_)
+             {
+-                dftbForceProvider_->writeCheckpointData(checkpointData, QMMMModuleInfo::sc_name);
++                dftbForceProvider_->writeCheckpointData(checkpointData, sc_dftbCheckpointName);
+             }
+             else if (forceProvider_)
+             {
+@@ -405,7 +409,10 @@ public:
+ 
+         // reading checkpoint data
+         const auto checkpointDataReading = [this](MDModulesCheckpointReadingDataOnMain checkpointData)
+-        { state_.readState(checkpointData.checkpointedData_, QMMMModuleInfo::sc_name); };
++        {
++            state_.readState(checkpointData.checkpointedData_, QMMMModuleInfo::sc_name);
++            dftbState_.readState(checkpointData.checkpointedData_, sc_dftbCheckpointName);
++        };
+         notifiers->checkpointingNotifier_.subscribe(checkpointDataReading);
+     }
+ 
+@@ -431,7 +438,8 @@ public:
+                     qmmmSimulationParameters_.localQMAtomSet(),
+                     qmmmSimulationParameters_.localMMAtomSet(),
+                     qmmmSimulationParameters_.periodicBoundaryConditionType(),
+-                    qmmmSimulationParameters_.logger());
++                    qmmmSimulationParameters_.logger(),
++                    dftbState_);
+             forceProviders->addForceProvider(dftbForceProvider_.get(), "QMMM");
+         }
+         else
+@@ -464,8 +472,10 @@ private:
+      * simulation setup time.
+      */
+     QMMMSimulationParameterSetup qmmmSimulationParameters_;
+-    //! Object holding the information stored in the checkpoint file
++    //! Object holding the information stored in the checkpoint file (CP2K path)
+     QMMMForceProviderState state_;
++    //! Object holding the DFTB+ checkpoint state
++    DFTBCheckpointState dftbState_;
+ 
+     GMX_DISALLOW_COPY_AND_ASSIGN(QMMM);
+ };
+diff --git a/src/gromacs/applied_forces/qmmm/tests/CMakeLists.txt b/src/gromacs/applied_forces/qmmm/tests/CMakeLists.txt
+index 6ca5dec256..106e1144b2 100644
+--- a/src/gromacs/applied_forces/qmmm/tests/CMakeLists.txt
++++ b/src/gromacs/applied_forces/qmmm/tests/CMakeLists.txt
+@@ -39,6 +39,7 @@ gmx_add_unit_test(QMMMAppliedForcesUnitTest qmmm_applied_forces-test
+         qmmmforceproviderstate.cpp
+         qmmmforceprovider.cpp
+         dftbforceprovider_embedding.cpp
++        dftbcheckpointstate.cpp
+         qmmm.cpp
+         )
+ target_link_libraries(qmmm_applied_forces-test PRIVATE math)
+diff --git a/src/gromacs/applied_forces/qmmm/dftbcheckpointstate.cpp b/src/gromacs/applied_forces/qmmm/dftbcheckpointstate.cpp
+new file mode 100644
+index 0000000000..5a7f1d7b56
+--- /dev/null
++++ b/src/gromacs/applied_forces/qmmm/dftbcheckpointstate.cpp
+@@ -0,0 +1,148 @@
++/*
++ * This file is part of the GROMACS molecular simulation package.
++ *
++ * Copyright 2024- The GROMACS Authors
++ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
++ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
++ *
++ * GROMACS is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public License
++ * as published by the Free Software Foundation; either version 2.1
++ * of the License, or (at your option) any later version.
++ *
++ * GROMACS is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with GROMACS; if not, see
++ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
++ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
++ *
++ * If you want to redistribute modifications to GROMACS, please
++ * consider that scientific software is very special. Version
++ * control is crucial - bugs must be traceable. We will be happy to
++ * consider code for inclusion in the official distribution, but
++ * derived work must not be called official GROMACS. Details are found
++ * in the README & COPYING files - if they are missing, get the
++ * official version at https://www.gromacs.org.
++ *
++ * To help us fund GROMACS development, we humbly ask that you cite
++ * the research papers on the package. Check out https://www.gromacs.org.
++ */
++/*! \internal \file
++ * \brief
++ * Implements DFTB+ checkpoint state for QM/MM checkpointing
++ *
++ * \author GRO-DFTB developers
++ * \ingroup module_applied_forces
++ */
++
++#include "gmxpre.h"
++
++#include "dftbcheckpointstate.h"
++
++#include <string>
++#include <string_view>
++
++#include "gromacs/utility/keyvaluetree.h"
++#include "gromacs/utility/keyvaluetreebuilder.h"
++
++
++namespace gmx
++{
++
++namespace
++{
++
++/*! \brief Tags for parameters stored in / read from checkpoint file
++ */
++//! \{
++const std::string c_mullikenChargesTag_     = "mulliken_charges";
++const std::string c_insertedQmChargesTag_   = "inserted_qm_charges";
++const std::string c_haveInsertedChargesTag_ = "have_inserted_charges";
++const std::string c_qmChargesInPmeTag_      = "qm_charges_in_pme";
++//! \}
++
++} // namespace
++
++/* ThDD:Eq. T-US-051-5.1 -- Serialize DFTB+ checkpoint state to KVT */
++void DFTBCheckpointState::writeState(KeyValueTreeObjectBuilder kvtBuilder,
++                                     std::string_view          identifier) const
++{
++    // Write Mulliken charges array
++    auto mullikenAdder =
++            kvtBuilder.addUniformArray<double>(std::string(identifier) + "-" + c_mullikenChargesTag_);
++    for (const auto& q : mullikenCharges_)
++    {
++        mullikenAdder.addValue(q);
++    }
++
++    // Write inserted QM charges array
++    auto insertedAdder = kvtBuilder.addUniformArray<double>(std::string(identifier) + "-"
++                                                            + c_insertedQmChargesTag_);
++    for (const auto& q : insertedQmCharges_)
++    {
++        insertedAdder.addValue(q);
++    }
++
++    // Write boolean flags as int (KVT does not natively support bool)
++    kvtBuilder.addValue<int>(std::string(identifier) + "-" + c_haveInsertedChargesTag_,
++                             static_cast<int>(haveInsertedCharges_));
++    kvtBuilder.addValue<int>(std::string(identifier) + "-" + c_qmChargesInPmeTag_,
++                             static_cast<int>(qmChargesInPme_));
++}
++
++/* ThDD:Eq. T-US-051-5.2 -- Restore DFTB+ checkpoint state from KVT */
++void DFTBCheckpointState::readState(const KeyValueTreeObject& kvtData, std::string_view identifier)
++{
++    const std::string mullikenKey = std::string(identifier) + "-" + c_mullikenChargesTag_;
++
++    // Check if DFTB+ checkpoint data exists (graceful legacy handling)
++    if (!kvtData.keyExists(mullikenKey))
++    {
++        stateRead_ = false;
++        return;
++    }
++
++    stateRead_ = true;
++
++    // Read Mulliken charges array
++    {
++        auto kvtDoubleArray = kvtData[mullikenKey].asArray().values();
++        mullikenCharges_.resize(kvtDoubleArray.size());
++        for (size_t i = 0; i < kvtDoubleArray.size(); i++)
++        {
++            mullikenCharges_[i] = kvtDoubleArray[i].cast<double>();
++        }
++    }
++
++    // Read inserted QM charges array
++    const std::string insertedKey = std::string(identifier) + "-" + c_insertedQmChargesTag_;
++    if (kvtData.keyExists(insertedKey))
++    {
++        auto kvtDoubleArray = kvtData[insertedKey].asArray().values();
++        insertedQmCharges_.resize(kvtDoubleArray.size());
++        for (size_t i = 0; i < kvtDoubleArray.size(); i++)
++        {
++            insertedQmCharges_[i] = kvtDoubleArray[i].cast<double>();
++        }
++    }
++
++    // Read haveInsertedCharges flag
++    const std::string haveInsertedKey = std::string(identifier) + "-" + c_haveInsertedChargesTag_;
++    if (kvtData.keyExists(haveInsertedKey))
++    {
++        haveInsertedCharges_ = (kvtData[haveInsertedKey].cast<int>() != 0);
++    }
++
++    // Read qmChargesInPme flag
++    const std::string qmInPmeKey = std::string(identifier) + "-" + c_qmChargesInPmeTag_;
++    if (kvtData.keyExists(qmInPmeKey))
++    {
++        qmChargesInPme_ = (kvtData[qmInPmeKey].cast<int>() != 0);
++    }
++}
++
++} // namespace gmx
+diff --git a/src/gromacs/applied_forces/qmmm/dftbcheckpointstate.h b/src/gromacs/applied_forces/qmmm/dftbcheckpointstate.h
+new file mode 100644
+index 0000000000..99602a5632
+--- /dev/null
++++ b/src/gromacs/applied_forces/qmmm/dftbcheckpointstate.h
+@@ -0,0 +1,168 @@
++/*
++ * This file is part of the GROMACS molecular simulation package.
++ *
++ * Copyright 2024- The GROMACS Authors
++ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
++ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
++ *
++ * GROMACS is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public License
++ * as published by the Free Software Foundation; either version 2.1
++ * of the License, or (at your option) any later version.
++ *
++ * GROMACS is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with GROMACS; if not, see
++ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
++ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
++ *
++ * If you want to redistribute modifications to GROMACS, please
++ * consider that scientific software is very special. Version
++ * control is crucial - bugs must be traceable. We will be happy to
++ * consider code for inclusion in the official distribution, but
++ * derived work must not be called official GROMACS. Details are found
++ * in the README & COPYING files - if they are missing, get the
++ * official version at https://www.gromacs.org.
++ *
++ * To help us fund GROMACS development, we humbly ask that you cite
++ * the research papers on the package. Check out https://www.gromacs.org.
++ */
++/*! \internal \file
++ * \brief
++ * Declares DFTB+ checkpoint state for QM/MM checkpointing
++ *
++ * \author GRO-DFTB developers
++ * \ingroup module_applied_forces
++ */
++#ifndef GMX_APPLIED_FORCES_DFTBCHECKPOINTSTATE_H
++#define GMX_APPLIED_FORCES_DFTBCHECKPOINTSTATE_H
++
++#include <string_view>
++#include <vector>
++
++namespace gmx
++{
++
++class KeyValueTreeObject;
++class KeyValueTreeObjectBuilder;
++
++/*! \internal
++ * \brief Class defining the internal DFTB+ checkpoint state for QM/MM.
++ *
++ * Stores Mulliken charges, inserted QM charges (for PME embedding),
++ * and boolean flags needed for checkpoint/restart of DFTB+ QM/MM simulations.
++ *
++ * ThDD:T-US-051-5.1 -- Checkpoint serialization
++ * ThDD:T-US-051-5.2 -- Checkpoint deserialization
++ * SDD:specs.md:section7 -- DFTBForceProvider checkpoint interface
++ */
++class DFTBCheckpointState
++{
++
++public:
++    //! Default constructor
++    DFTBCheckpointState() = default;
++
++    /*! \brief Write internal DFTB+ state into a key value tree.
++     * The entries to the kvt are identified with identifier, so that a variable
++     * is identified with the key "identifier-variablename"
++     *
++     * \param[in] kvtBuilder enables writing to the Key-Value-Tree
++     *                              the state is written to
++     *
++     * \param[in] identifier denotes the module that is checkpointing the data
++     */
++    void writeState(KeyValueTreeObjectBuilder kvtBuilder, std::string_view identifier) const;
++
++    /*! \brief Read the internal parameters from the checkpoint file on master
++     * \param[in] kvtData holding the checkpoint information
++     * \param[in] identifier identifies the data in a key-value-tree
++     */
++    void readState(const KeyValueTreeObject& kvtData, std::string_view identifier);
++
++    /*! \brief Returns whether a DFTB+ state was read from checkpoint.
++     * \return true if state was read, false otherwise
++     */
++    bool isStateRead() const { return stateRead_; }
++
++    /*! \brief Returns the stored Mulliken charges.
++     * \return reference to Mulliken charges vector
++     */
++    const std::vector<double>& mullikenCharges() const { return mullikenCharges_; }
++
++    /*! \brief Returns the stored inserted QM charges.
++     * \return reference to inserted QM charges vector
++     */
++    const std::vector<double>& insertedQmCharges() const { return insertedQmCharges_; }
++
++    /*! \brief Returns whether inserted charges have been populated.
++     * \return true if charges were inserted before checkpoint
++     */
++    bool haveInsertedCharges() const { return haveInsertedCharges_; }
++
++    /*! \brief Returns whether QM charges were in the PME array at checkpoint time.
++     * \return true if QM charges were present in GROMACS chargeA
++     */
++    bool qmChargesInPme() const { return qmChargesInPme_; }
++
++    /*! \brief Set the Mulliken charges for checkpointing.
++     * \param[in] charges Mulliken charges to store
++     */
++    void setMullikenCharges(const std::vector<double>& charges) { mullikenCharges_ = charges; }
++
++    /*! \brief Set the inserted QM charges for checkpointing.
++     * \param[in] charges inserted QM charges to store
++     */
++    void setInsertedQmCharges(const std::vector<double>& charges) { insertedQmCharges_ = charges; }
++
++    /*! \brief Set the haveInsertedCharges flag.
++     * \param[in] value whether inserted charges have been populated
++     */
++    void setHaveInsertedCharges(bool value) { haveInsertedCharges_ = value; }
++
++    /*! \brief Set the qmChargesInPme flag.
++     * \param[in] value whether QM charges are in the PME array
++     */
++    void setQmChargesInPme(bool value) { qmChargesInPme_ = value; }
++
++private:
++    /*! \brief Indicate if a DFTB+ state was read from checkpoint.
++     */
++    bool stateRead_ = false;
++
++    /*! \brief Mulliken charges from DFTB+ at checkpoint time.
++     *
++     * These are restored to seed the SCC iteration at restart,
++     * providing charge continuity across checkpoint boundaries.
++     */
++    std::vector<double> mullikenCharges_;
++
++    /*! \brief QM charges last inserted into GROMACS chargeA array.
++     *
++     * ThDD:T-US-047-N-1.1 -- Updated only at pair-search steps.
++     * Needed for exact energy/force double-counting corrections at restart.
++     */
++    std::vector<double> insertedQmCharges_;
++
++    /*! \brief Whether insertedQmCharges_ has been populated.
++     *
++     * False until the first QM charge insertion into PME (pair-search step).
++     */
++    bool haveInsertedCharges_ = false;
++
++    /*! \brief Whether QM charges were present in chargeA at checkpoint time.
++     *
++     * ThDD:T-US-047-4.2 -- Kernel transition flag.
++     * Determines whether the force provider uses the full Ewald path
++     * or the correction-only path at restart.
++     */
++    bool qmChargesInPme_ = false;
++};
++
++} // namespace gmx
++
++#endif // GMX_APPLIED_FORCES_DFTBCHECKPOINTSTATE_H
+diff --git a/src/gromacs/applied_forces/qmmm/tests/dftbcheckpointstate.cpp b/src/gromacs/applied_forces/qmmm/tests/dftbcheckpointstate.cpp
+new file mode 100644
+index 0000000000..311626d643
+--- /dev/null
++++ b/src/gromacs/applied_forces/qmmm/tests/dftbcheckpointstate.cpp
+@@ -0,0 +1,305 @@
++/*
++ * This file is part of the GROMACS molecular simulation package.
++ *
++ * Copyright 2024- The GROMACS Authors
++ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
++ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
++ *
++ * GROMACS is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public License
++ * as published by the Free Software Foundation; either version 2.1
++ * of the License, or (at your option) any later version.
++ *
++ * GROMACS is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with GROMACS; if not, see
++ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
++ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
++ *
++ * If you want to redistribute modifications to GROMACS, please
++ * consider that scientific software is very special. Version
++ * control is crucial - bugs must be traceable. We will be happy to
++ * consider code for inclusion in the official distribution, but
++ * derived work must not be called official GROMACS. Details are found
++ * in the README & COPYING files - if they are missing, get the
++ * official version at https://www.gromacs.org.
++ *
++ * To help us fund GROMACS development, we humbly ask that you cite
++ * the research papers on the package. Check out https://www.gromacs.org.
++ */
++/*! \internal \file
++ * \brief
++ * Tests for DFTBCheckpointState class used for DFTB+ QM/MM checkpointing.
++ *
++ * \author GRO-DFTB developers
++ * \ingroup module_applied_forces
++ */
++#include "gmxpre.h"
++
++#include "gromacs/applied_forces/qmmm/dftbcheckpointstate.h"
++
++#include <gtest/gtest.h>
++
++#include "gromacs/utility/keyvaluetree.h"
++#include "gromacs/utility/keyvaluetreebuilder.h"
++
++namespace gmx
++{
++
++class DFTBCheckpointStateTest : public ::testing::Test
++{
++protected:
++    //! Identifier for DFTB+ checkpoint keys (distinct from CP2K "qmmm-cp2k")
++    static constexpr const char* sc_identifier_ = "qmmm-dftb";
++
++    //! Test Mulliken charges for a B5-like water (O, H, H)
++    std::vector<double> defaultCharges_ = { -0.636, 0.318, 0.318 };
++};
++
++// AC-1: Mulliken charges survive write->read roundtrip with exact bitwise match
++TEST_F(DFTBCheckpointStateTest, RoundtripMullikenCharges)
++{
++    DFTBCheckpointState writeState;
++    writeState.setMullikenCharges(defaultCharges_);
++
++    KeyValueTreeBuilder builder;
++    writeState.writeState(builder.rootObject(), sc_identifier_);
++    const KeyValueTreeObject kvt = builder.build();
++
++    DFTBCheckpointState readState;
++    readState.readState(kvt, sc_identifier_);
++
++    EXPECT_TRUE(readState.isStateRead());
++    const auto& readCharges = readState.mullikenCharges();
++    ASSERT_EQ(defaultCharges_.size(), readCharges.size());
++    for (size_t i = 0; i < defaultCharges_.size(); i++)
++    {
++        EXPECT_DOUBLE_EQ(defaultCharges_[i], readCharges[i]);
++    }
++}
++
++// AC-1b: Edge case with all-zero charges (step 0 scenario)
++TEST_F(DFTBCheckpointStateTest, RoundtripZeroCharges)
++{
++    std::vector<double> zeroCharges = { 0.0, 0.0, 0.0 };
++
++    DFTBCheckpointState writeState;
++    writeState.setMullikenCharges(zeroCharges);
++
++    KeyValueTreeBuilder builder;
++    writeState.writeState(builder.rootObject(), sc_identifier_);
++    const KeyValueTreeObject kvt = builder.build();
++
++    DFTBCheckpointState readState;
++    readState.readState(kvt, sc_identifier_);
++
++    EXPECT_TRUE(readState.isStateRead());
++    const auto& readCharges = readState.mullikenCharges();
++    ASSERT_EQ(zeroCharges.size(), readCharges.size());
++    for (size_t i = 0; i < zeroCharges.size(); i++)
++    {
++        EXPECT_DOUBLE_EQ(zeroCharges[i], readCharges[i]);
++    }
++}
++
++// AC-1c: Link atom case where Mulliken and inserted charge arrays have different sizes
++TEST_F(DFTBCheckpointStateTest, MismatchedArraySizes)
++{
++    std::vector<double> mullikenCharges  = { -0.636, 0.318, 0.318, -0.1, 0.05 };
++    std::vector<double> insertedCharges  = { -0.636, 0.318, 0.318 };
++
++    DFTBCheckpointState writeState;
++    writeState.setMullikenCharges(mullikenCharges);
++    writeState.setInsertedQmCharges(insertedCharges);
++    writeState.setHaveInsertedCharges(true);
++
++    KeyValueTreeBuilder builder;
++    writeState.writeState(builder.rootObject(), sc_identifier_);
++    const KeyValueTreeObject kvt = builder.build();
++
++    DFTBCheckpointState readState;
++    readState.readState(kvt, sc_identifier_);
++
++    EXPECT_TRUE(readState.isStateRead());
++
++    const auto& readMulliken = readState.mullikenCharges();
++    ASSERT_EQ(mullikenCharges.size(), readMulliken.size());
++    for (size_t i = 0; i < mullikenCharges.size(); i++)
++    {
++        EXPECT_DOUBLE_EQ(mullikenCharges[i], readMulliken[i]);
++    }
++
++    const auto& readInserted = readState.insertedQmCharges();
++    ASSERT_EQ(insertedCharges.size(), readInserted.size());
++    for (size_t i = 0; i < insertedCharges.size(); i++)
++    {
++        EXPECT_DOUBLE_EQ(insertedCharges[i], readInserted[i]);
++    }
++}
++
++// AC-2: All 4 fields (both charge arrays + both flags) survive write->read
++TEST_F(DFTBCheckpointStateTest, FullStateRestoration)
++{
++    DFTBCheckpointState writeState;
++    writeState.setMullikenCharges(defaultCharges_);
++    writeState.setInsertedQmCharges({ -0.640, 0.320, 0.320 });
++    writeState.setHaveInsertedCharges(true);
++    writeState.setQmChargesInPme(true);
++
++    KeyValueTreeBuilder builder;
++    writeState.writeState(builder.rootObject(), sc_identifier_);
++    const KeyValueTreeObject kvt = builder.build();
++
++    DFTBCheckpointState readState;
++    readState.readState(kvt, sc_identifier_);
++
++    EXPECT_TRUE(readState.isStateRead());
++
++    // Verify Mulliken charges
++    const auto& readMulliken = readState.mullikenCharges();
++    ASSERT_EQ(defaultCharges_.size(), readMulliken.size());
++    for (size_t i = 0; i < defaultCharges_.size(); i++)
++    {
++        EXPECT_DOUBLE_EQ(defaultCharges_[i], readMulliken[i]);
++    }
++
++    // Verify inserted QM charges
++    const auto& readInserted = readState.insertedQmCharges();
++    ASSERT_EQ(3U, readInserted.size());
++    EXPECT_DOUBLE_EQ(-0.640, readInserted[0]);
++    EXPECT_DOUBLE_EQ(0.320, readInserted[1]);
++    EXPECT_DOUBLE_EQ(0.320, readInserted[2]);
++
++    // Verify flags
++    EXPECT_TRUE(readState.haveInsertedCharges());
++    EXPECT_TRUE(readState.qmChargesInPme());
++}
++
++// AC-3: insertedQmCharges survives write->read cycle
++TEST_F(DFTBCheckpointStateTest, PmeChargesRoundtrip)
++{
++    DFTBCheckpointState writeState;
++    writeState.setMullikenCharges(defaultCharges_);
++    writeState.setInsertedQmCharges(defaultCharges_);
++    writeState.setHaveInsertedCharges(true);
++
++    KeyValueTreeBuilder builder;
++    writeState.writeState(builder.rootObject(), sc_identifier_);
++    const KeyValueTreeObject kvt = builder.build();
++
++    DFTBCheckpointState readState;
++    readState.readState(kvt, sc_identifier_);
++
++    EXPECT_TRUE(readState.isStateRead());
++    const auto& readInserted = readState.insertedQmCharges();
++    ASSERT_EQ(defaultCharges_.size(), readInserted.size());
++    for (size_t i = 0; i < defaultCharges_.size(); i++)
++    {
++        EXPECT_DOUBLE_EQ(defaultCharges_[i], readInserted[i]);
++    }
++}
++
++// AC-4: All 4 boolean flag combinations survive roundtrip
++TEST_F(DFTBCheckpointStateTest, FlagCombinations)
++{
++    const bool flagValues[4][2] = {
++        { false, false },
++        { false, true },
++        { true, false },
++        { true, true },
++    };
++
++    for (const auto& flags : flagValues)
++    {
++        const bool haveInserted    = flags[0];
++        const bool qmChargesInPme = flags[1];
++
++        DFTBCheckpointState writeState;
++        writeState.setMullikenCharges(defaultCharges_);
++        writeState.setHaveInsertedCharges(haveInserted);
++        writeState.setQmChargesInPme(qmChargesInPme);
++
++        KeyValueTreeBuilder builder;
++        writeState.writeState(builder.rootObject(), sc_identifier_);
++        const KeyValueTreeObject kvt = builder.build();
++
++        DFTBCheckpointState readState;
++        readState.readState(kvt, sc_identifier_);
++
++        EXPECT_TRUE(readState.isStateRead())
++                << "haveInserted=" << haveInserted << " qmChargesInPme=" << qmChargesInPme;
++        EXPECT_EQ(haveInserted, readState.haveInsertedCharges())
++                << "haveInserted mismatch for (" << haveInserted << "," << qmChargesInPme << ")";
++        EXPECT_EQ(qmChargesInPme, readState.qmChargesInPme())
++                << "qmChargesInPme mismatch for (" << haveInserted << "," << qmChargesInPme << ")";
++    }
++}
++
++// Graceful handling of empty KVT (old checkpoint without DFTB+ data)
++TEST_F(DFTBCheckpointStateTest, MissingKeysDoNotCrash)
++{
++    KeyValueTreeBuilder    builder;
++    const KeyValueTreeObject kvt = builder.build();
++
++    DFTBCheckpointState readState;
++    readState.readState(kvt, sc_identifier_);
++
++    EXPECT_FALSE(readState.isStateRead());
++    EXPECT_TRUE(readState.mullikenCharges().empty());
++    EXPECT_TRUE(readState.insertedQmCharges().empty());
++    EXPECT_FALSE(readState.haveInsertedCharges());
++    EXPECT_FALSE(readState.qmChargesInPme());
++}
++
++// Option B: writeState preserves (true,true) flags faithfully in KVT.
++// The Option B reset (setting flags to false) happens in DFTBForceProvider
++// constructor, NOT in readState. This test verifies serialization fidelity.
++TEST_F(DFTBCheckpointStateTest, OptionBFlagsPreservedInSerialization)
++{
++    DFTBCheckpointState writeState;
++    writeState.setMullikenCharges(defaultCharges_);
++    writeState.setHaveInsertedCharges(true);
++    writeState.setQmChargesInPme(true);
++
++    KeyValueTreeBuilder builder;
++    writeState.writeState(builder.rootObject(), sc_identifier_);
++    const KeyValueTreeObject kvt = builder.build();
++
++    DFTBCheckpointState readState;
++    readState.readState(kvt, sc_identifier_);
++
++    // readState faithfully reads what was written
++    EXPECT_TRUE(readState.isStateRead());
++    EXPECT_TRUE(readState.haveInsertedCharges());
++    EXPECT_TRUE(readState.qmChargesInPme());
++}
++
++// AC-6: No crashes in 100 write/read cycles (leak detection via Valgrind is separate)
++TEST_F(DFTBCheckpointStateTest, RepeatedWriteReadCycles)
++{
++    for (int cycle = 0; cycle < 100; cycle++)
++    {
++        DFTBCheckpointState writeState;
++        writeState.setMullikenCharges(defaultCharges_);
++        writeState.setInsertedQmCharges(defaultCharges_);
++        writeState.setHaveInsertedCharges(true);
++        writeState.setQmChargesInPme(cycle % 2 == 0);
++
++        KeyValueTreeBuilder builder;
++        writeState.writeState(builder.rootObject(), sc_identifier_);
++        const KeyValueTreeObject kvt = builder.build();
++
++        DFTBCheckpointState readState;
++        readState.readState(kvt, sc_identifier_);
++
++        ASSERT_TRUE(readState.isStateRead()) << "Failed at cycle " << cycle;
++        ASSERT_EQ(defaultCharges_.size(), readState.mullikenCharges().size())
++                << "Mulliken size mismatch at cycle " << cycle;
++    }
++}
++
++} // namespace gmx

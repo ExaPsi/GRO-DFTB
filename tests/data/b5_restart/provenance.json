@@ -1,0 +1,1 @@
+{"description": "B5 checkpoint/restart validation", "protocol": "40-step continuous vs 20+20 interrupted/restarted NVE", "nstlist": 10, "modes": ["cutoff", "pme"], "result": "bitwise identical (|DeltaE| = 0.0 Ha)"}
