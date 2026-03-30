@@ -5,9 +5,10 @@ type: software
 authors:
   - family-names: Vchirawongkwin
     given-names: Viwat
-    orcid: "https://orcid.org/0000-0002-2747-1552"
+    orcid: "https://orcid.org/0000-0001-5684-0752"
     affiliation: "Chulalongkorn University"
 version: "1.0"
+date-released: "2026-03-30"
 license: LGPL-3.0-or-later
 repository-code: "https://github.com/ExaPsi/GRO-DFTB"
 preferred-citation:
