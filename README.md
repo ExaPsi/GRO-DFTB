@@ -1,5 +1,7 @@
 # GRO-DFTB
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19337069.svg)](https://doi.org/10.5281/zenodo.19337069)
+
 An open-source QM/MM interface coupling [DFTB+](https://dftbplus.org/) with [GROMACS](https://www.gromacs.org/) for energy-conserving ground-state molecular dynamics.
 
 GRO-DFTB integrates the self-consistent-charge density-functional tight-binding (SCC-DFTB) method into GROMACS through its native `IForceProvider`/`MDModule` architecture, enabling nanosecond-scale QM/MM simulations of solvated systems under periodic boundary conditions.

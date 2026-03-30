@@ -34,6 +34,11 @@
       "identifier": "https://github.com/ExaPsi/GRO-DFTB",
       "relation": "isSupplementTo",
       "scheme": "url"
+    },
+    {
+      "identifier": "10.5281/zenodo.19337069",
+      "relation": "isIdenticalTo",
+      "scheme": "doi"
     }
   ],
   "version": "1.0"

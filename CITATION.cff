@@ -10,6 +10,7 @@ authors:
 version: "1.0"
 date-released: "2026-03-30"
 license: LGPL-3.0-or-later
+doi: "10.5281/zenodo.19337069"
 repository-code: "https://github.com/ExaPsi/GRO-DFTB"
 preferred-citation:
   type: article
